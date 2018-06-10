@@ -1,0 +1,53 @@
+body{
+  font-family: raleway;
+  font-size: 21px;
+}
+
+#app{
+ display: flex;
+ flex-direction: column;
+ min-height: 100vh;
+ height: 100%;
+ align-items: center;
+ padding: 150px;
+ padding-top: 0;
+}
+
+@media (max-width: 767px){
+  #app{
+    padding: 25px;
+  }
+}
+
+.toggle-bar{
+ font-size: 50px;
+ text-decoration: none;
+}
+
+.smiley-container{
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.smiley-item{
+  font-size: 50px;
+  text-shadow: 2px 2px #650707;
+  animation: pulse 0.7s infinite linear;
+  align-self: center;
+  margin: 2px 5px;
+}
+
+@keyframes pulse{
+  0%{
+    transform: scale(1) rotate(0);
+  }
+
+  50%{
+    transform: scale(1.5) rotate(180deg);
+  }
+
+  100%{
+    transform: scale(1) rotate(360deg);
+  }
+}

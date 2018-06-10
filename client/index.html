@@ -1,0 +1,58 @@
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js"></script>
+<html>
+   <head>
+     <title>💬 Chat.</title>
+     <meta name="viewport" content="width=device-width, initial-scale=1" />
+     <link href="https://fonts.googleapis.com/css?family=Raleway:200" rel="stylesheet">
+     <link rel="stylesheet" href="start2.css" />
+   </head>
+
+
+   <script>
+
+   Vue.component("smiley-item",{
+    props: [
+      'smiley'
+    ],
+    template:'<span class="smiley-item"> {{_.first(_.toArray(smiley.char))}}</span>'
+   })
+
+   </script>
+
+
+   <body>
+
+    <div id="app" >
+      <p>{{ message }}</p>
+
+      <a class="toggle-bar" v-on:click="addEmoji();" href="#">👇</a>
+      <div class="smiley-container">
+        <smiley-item v-for="emoji in smileys" :smiley="{char: emoji}"></smiley-item>
+      </div>
+    </div>
+  </body>
+
+
+
+    <script>
+
+      var app = new Vue({
+     el: '#app',
+     data: {
+       message: 'Click the hand.',
+       smileys:[]
+     },
+     methods:{
+       addEmoji: function(){
+
+        randomEmoj = ""; // todo
+
+
+        this.smileys.push(randomEmoj)
+       }
+     }
+   })
+
+   </script>
+</html>

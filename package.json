@@ -1,0 +1,17 @@
+{
+  "name": "chatappnode",
+  "version": "1.0.0",
+  "description": "Backend for a simple toy chat app",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "koa": "^2.5.1",
+    "koa-router": "^7.4.0",
+    "koa-static": "^4.0.3",
+    "lodash": "^4.17.10"
+  }
+}
