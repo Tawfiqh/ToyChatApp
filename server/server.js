@@ -5,11 +5,10 @@ const _ = require('lodash');
 const Koa = require('koa');
 const app = new Koa();
 const Router = require('koa-router');
-const myMod = require('./randomEmoji')
+const myMod = require('./random-emoji')
 router = new Router();
 
 setupLogging();
-
 
 
 router.get('/hi', (ctx, next) => {
@@ -24,7 +23,7 @@ router.get('/emoji', (ctx, next) => {
 
 app.use(router.routes()).use(router.allowedMethods());
 
-app.use(serve('./client'));
+app.use(serve('./public'));
 
 app.listen(3000);
 console.log("now listening localhost:3000")
