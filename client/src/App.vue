@@ -4,7 +4,7 @@
 
     <a class="toggle-bar" v-on:click="addEmoji();" href="#">👇</a>
     <div class="smiley-container">
-      <SmileyItem v-for="emoji in smileys" :smiley="{char: emoji}"></SmileyItem>
+      <SmileyItem v-for="emoji in smileys" v-bind:key="emoji" :smiley="{char: emoji}"></SmileyItem>
     </div>
   </div>
 </template>
