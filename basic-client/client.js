@@ -10,13 +10,13 @@ function addToRecord(data, type){
 }
   // listener for 'cppp' event, which updates messages
 socket.on('cppp', function(data) {
-    addToRecord(data, "Got :");
+    addToRecord(data, "Anon: >>>>");
   });
 
   // sends message to server, resets & prevents default form action
   $('form').submit(function() {
   	var message = $('#message').val();
-    addToRecord(message, "Sent:");
+    // addToRecord(message, "Sent:");
   	socket.emit('messages', message);
   	// this.reset();
   	return false;

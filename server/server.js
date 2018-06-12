@@ -21,6 +21,8 @@ router.get('/emoji', (ctx, next) => {
 
 app.use(router.routes()).use(router.allowedMethods());
 
+router.redirect('/chat', '/chat.html');
+
 app.use(serve('./public'));
 app.use(serve('./basic-client'));
 
