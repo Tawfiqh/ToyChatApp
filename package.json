@@ -4,6 +4,7 @@
   "description": "Backend for a simple toy chat app",
   "main": "index.js",
   "scripts": {
+    "setup": "npm install; cd client; npm install; cd ..; npm run build-client",
     "serve": "nodemon server/server.js",
     "build-client": "cd client; npm run build"
   },
@@ -14,6 +15,7 @@
     "koa-router": "^7.4.0",
     "koa-static": "^4.0.3",
     "lodash": "^4.17.10",
-    "nodemon": "^1.17.5"
+    "nodemon": "^1.17.5",
+    "npm": "^6.1.0"
   }
 }

@@ -21,8 +21,8 @@ Save login and chat history.
 How to run
 ==========
 
-# install dependencies
-$ npm install
+# install dependencies - runs for server and client. 
+$ npm run setup
 
 # build client
 $ npm run build-client
