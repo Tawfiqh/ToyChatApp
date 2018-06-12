@@ -5,6 +5,10 @@ ToDo:
 
 2. ~~From Vue. Have a button that requests an emoji from a node backend.~~
 
+3. Write unit tests for helloWorld and emoji Endpoints.
+
+4. Refactor endpoints into setup functions. e.g: `setupHelloWorldEndpoint();`
+
 3. Login page - You enter a login ID and then you’re in the chat room.
 
 4. I want there to be one chat room.

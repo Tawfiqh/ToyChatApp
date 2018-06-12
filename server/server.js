@@ -15,7 +15,6 @@ router.get('/hi', (ctx, next) => {
   ctx.body = 'Hello World!';
 });
 
-
 router.get('/emoji', (ctx, next) => {
   ctx.body = randomEmoji();
 });
