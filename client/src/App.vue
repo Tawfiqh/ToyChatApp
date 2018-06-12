@@ -11,6 +11,7 @@
 
 <script>
 import SmileyItem from './components/SmileyItem.vue'
+import axios from 'axios'
 
 export default {
   name: 'app',
@@ -23,8 +24,17 @@ export default {
   }),
   methods:{
    addEmoji(){
-    var randomEmoj = "🍞"; // todo
-    this.smileys.push(randomEmoj)
+
+     axios.get(`/emoji`)
+        .then(response => {
+          // JSON responses are automatically parsed.
+          var randomEmoj = response.data;
+          this.smileys.push(randomEmoj);
+        })
+        .catch(e => {
+          this.errors.push(e)
+          this.smileys.push("🚫")
+        })
    }
   }
 }
