@@ -21,6 +21,7 @@ export default {
   data: () => ({
     message: 'Click the hand.',
     smileys:[],
+    errors:[]
   }),
   methods:{
    addEmoji(){
