@@ -24,18 +24,17 @@ export default {
     errors:[]
   }),
   methods:{
-   addEmoji(){
+   async addEmoji(){
 
-     axios.get(`/emoji`)
-        .then(response => {
-          // JSON responses are automatically parsed.
-          var randomEmoj = response.data;
-          this.smileys.push(randomEmoj);
-        })
-        .catch(e => {
-          this.errors.push(e)
-          this.smileys.push("🚫")
-        })
+     try {
+       const { data } = await axios.get(`/emoji`)
+       // JSON responses are automatically parsed.
+       this.smileys.push(data);
+
+     } catch (e) {
+       this.errors.push(e)
+       this.smileys.push("🚫")
+     }
    }
   }
 }
