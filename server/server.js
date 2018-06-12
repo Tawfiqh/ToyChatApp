@@ -1,12 +1,11 @@
-// app.use(serve(`${__dirname}/public`))
-// app.use(require('koa-static')(root, opts));
 const serve = require('koa-static');
 const _ = require('lodash');
 const Koa = require('koa');
-const app = new Koa();
 const Router = require('koa-router');
-const myMod = require('./random-emoji')
+const randomEmoji = require('./random-emoji')
+
 router = new Router();
+const app = new Koa();
 
 setupLogging();
 
@@ -17,28 +16,36 @@ router.get('/hi', (ctx, next) => {
 
 
 router.get('/emoji', (ctx, next) => {
-  randomEmoj = myMod();
-  ctx.body = randomEmoj;
+  ctx.body = randomEmoji();
 });
 
 app.use(router.routes()).use(router.allowedMethods());
 
 app.use(serve('./public'));
+app.use(serve('./basic-client'));
 
-app.listen(3000);
+var server = app.listen(3000);
 console.log("now listening localhost:3000")
 
 
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+const socket = require('socket.io');
+const port = 7777
+var server = app.listen(port)
 
+const io = new socket(server)
+setupIoChatServer();
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 
 
 function setupLogging(){
   //Init request
-  app.use(async (ctx, next) => {
-    console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
-    await next();
-  });
+  // app.use(async (ctx, next) => {
+  //   console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
+  //   await next();
+  // });
   // x-response-time
   app.use(async (ctx, next) => {
     const start = Date.now();
@@ -56,6 +63,26 @@ function setupLogging(){
 
   app.use(async (ctx, next) => {
     await next();
-    console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- \n")
+    console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
   });
+}
+
+
+
+
+function setupIoChatServer(){
+  io.on('connection', function(socket){
+    console.log('a user connected')
+
+    socket.on('join', function(data) {
+  		console.log(data);
+  	});
+
+    socket.on('messages', function(data){
+      console.log("Recieved: " + data)
+
+      socket.emit('cppp', data);
+  		socket.broadcast.emit('cppp', data);
+  	});
+  })
 }
