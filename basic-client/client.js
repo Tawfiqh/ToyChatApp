@@ -1,12 +1,12 @@
 // initializing socket, connection to server
 
-var socket = io.connect('http://localhost:7777');
+var socket = io.connect('/');
 socket.on('connect', function(data) {
     socket.emit('join', 'Hello server from client');
 });
 
 function addToRecord(data, type){
-  $('#cppp').append('<li><span style="float: left;">' + type + '</span>' + data + '</li>');
+  $('#message-container').append('<li><span style="float: left;">' + type + '</span>' + data + '</li>');
 }
   // listener for 'cppp' event, which updates messages
 socket.on('cppp', function(data) {

@@ -3,12 +3,13 @@ const _ = require('lodash');
 const Koa = require('koa');
 const Router = require('koa-router');
 const randomEmoji = require('./random-emoji')
+const socket = require('socket.io');
+
 
 router = new Router();
 const app = new Koa();
 
 setupLogging();
-
 
 router.get('/hi', (ctx, next) => {
   ctx.body = 'Hello World!';
@@ -28,15 +29,9 @@ var server = app.listen(3000);
 console.log("now listening localhost:3000")
 
 
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-const socket = require('socket.io');
-const port = 7777
-var server = app.listen(port)
-
 const io = new socket(server)
 setupIoChatServer();
 
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 
 
