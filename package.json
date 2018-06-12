@@ -4,9 +4,10 @@
   "description": "Backend for a simple toy chat app",
   "main": "index.js",
   "scripts": {
-    "setup": "npm install; cd client; npm install; cd ..; npm run build-client",
-    "serve": "nodemon server/server.js",
-    "build-client": "cd client; npm run build"
+    "postinstall": " cd client && npm install",
+    "build-client": "cd client && npm run build",
+    "setup": "npm run install; npm run build-client",
+    "serve": "nodemon server/server.js"
   },
   "author": "",
   "license": "ISC",

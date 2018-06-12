@@ -41,12 +41,31 @@ export default {
 </script>
 
 <style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+#app{
+ display: flex;
+ flex-direction: column;
+ min-height: 100vh;
+ height: 100%;
+ align-items: center;
+ padding: 150px;
+ padding-top: 0;
 }
+
+@media (max-width: 767px){
+  #app{
+    padding: 25px;
+  }
+}
+
+.toggle-bar{
+ font-size: 50px;
+ text-decoration: none;
+}
+
+.smiley-container{
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
 </style>
