@@ -42,3 +42,5 @@ $ npm run build
 # Notes:
 
 https://koajs.com
+
+https://vuejs.org/v2/guide/instance.html#Lifecycle-Diagram
