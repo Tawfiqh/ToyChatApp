@@ -9,19 +9,17 @@ ToDo:
 
 4. Refactor endpoints into setup functions. e.g: `setupHelloWorldEndpoint();`
 
-3. Login page - You enter a login ID and then you’re in the chat room.
+3. Move chat page into Vue.
 
-4. I want there to be one chat room.
+3. Login page - You enter a login ID and then you’re in the chat room and it posts messages with your name.
 
-5. Serve a nice front-end in vue. Real time.
+4. Type the name of the chat-room you want to join and then it only gives you messages from that room.
 
 6. Separate dependencies into dev-dependencies and dependencies.
 
 
 Bonus:
-Multiple chat rooms.
-Save login and chat history.
-
+Save login and chat history to database.
 
 How to run
 ==========

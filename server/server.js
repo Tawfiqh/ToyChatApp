@@ -3,6 +3,7 @@ const _ = require('lodash');
 const Koa = require('koa');
 const Router = require('koa-router');
 const randomEmoji = require('./random-emoji')
+const randomWords = require('./random-words/random-words')
 const socket = require('socket.io');
 
 
@@ -17,6 +18,12 @@ router.get('/hi', (ctx, next) => {
 
 router.get('/emoji', (ctx, next) => {
   ctx.body = randomEmoji();
+});
+
+router.get('/new-user-id', async (ctx, next) => {
+  var newId = await randomWords();
+  newId = newId.replace(/[\s-]/g, "_");
+  ctx.body = randomEmoji() +newId + randomEmoji() ;
 });
 
 app.use(router.routes()).use(router.allowedMethods());
@@ -75,7 +82,7 @@ function setupIoChatServer(){
   	});
 
     socket.on('messages', function(data){
-      console.log("Recieved: " + data)
+      console.log("Recieved: " + JSON.stringify(data))
 
       socket.emit('cppp', data);
   		socket.broadcast.emit('cppp', data);
