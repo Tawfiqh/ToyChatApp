@@ -36,6 +36,15 @@ export default {
        this.smileys.push("🚫")
      }
    }
+   async NewMessage(data) {
+
+   },
+  },
+  mounted() {
+    socket.on('cppp', this.NewMessage);
+  },
+  beforeDestroy() {
+    socket.removeListener('cppp', this.NewMessage);
   }
 }
 </script>
