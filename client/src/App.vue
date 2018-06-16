@@ -1,80 +1,32 @@
 <template>
-  <div id="app" >
-    <p>{{ message }}</p>
-
-    <a class="toggle-bar" v-on:click="addEmoji();" href="#">👇</a>
-    <div class="smiley-container">
-      <SmileyItem v-for="emoji in smileys" v-bind:key="emoji" :smiley="{char: emoji}"></SmileyItem>
+  <div id="app">
+    <div id="nav">
+      <router-link to="/">/</router-link> |
+      <router-link to="/hello">hello</router-link> |
+      <router-link to="/picker">picker</router-link>
     </div>
+    <router-view/>
   </div>
 </template>
 
-<script>
-import SmileyItem from './components/SmileyItem.vue'
-import axios from 'axios'
-
-export default {
-  name: 'app',
-  components: {
-    SmileyItem
-  },
-  data: () => ({
-    message: 'Click the hand.',
-    smileys:[],
-    errors:[]
-  }),
-  methods:{
-   async addEmoji(){
-
-     try {
-       const { data } = await axios.get(`/emoji`)
-       // JSON responses are automatically parsed.
-       this.smileys.push(data);
-
-     } catch (e) {
-       this.errors.push(e)
-       this.smileys.push("🚫")
-     }
-   }
-   async NewMessage(data) {
-
-   },
-  },
-  mounted() {
-    socket.on('cppp', this.NewMessage);
-  },
-  beforeDestroy() {
-    socket.removeListener('cppp', this.NewMessage);
-  }
-}
-</script>
-
 <style>
-#app{
- display: flex;
- flex-direction: column;
- min-height: 100vh;
- height: 100%;
- align-items: center;
- padding: 150px;
- padding-top: 0;
+#app {
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+}
+#nav {
+  padding: 30px;
 }
 
-@media (max-width: 767px){
-  #app{
-    padding: 25px;
-  }
+#nav a {
+  font-weight: bold;
+  color: #2c3e50;
 }
 
-.toggle-bar{
- font-size: 50px;
- text-decoration: none;
+#nav a.router-link-exact-active {
+  color: #42b983;
 }
-
-.smiley-container{
-  display: flex;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
 </style>
