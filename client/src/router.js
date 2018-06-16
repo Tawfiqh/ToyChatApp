@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
+import Chat from './views/Chat.vue'
 import Hello from './views/Hello.vue'
-import Picker from './views/Picker.vue'
 
 Vue.use(Router)
 
@@ -9,19 +9,13 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'hello',
+      name: 'Hello',
       component: Hello
     },
     {
-      path: '/hello',
-      name: 'hello',
-      component: Hello
+      path: '/chat',
+      name: 'chat',
+      component: Chat
     },
-    {
-      path: '/picker',
-      name: 'picker',
-      component: Picker
-    },
-
   ]
 })

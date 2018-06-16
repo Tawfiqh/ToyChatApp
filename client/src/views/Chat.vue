@@ -1,6 +1,6 @@
 <template>
-  <div id="picker" >
-    <p>{{ message }}</p>
+  <div id="hello" >
+    <p> HOME PAGE{{ message }}</p>
 
     <a class="toggle-bar" v-on:click="addEmoji();" href="#">👇</a>
     <div class="smiley-container">
@@ -15,12 +15,12 @@ import SmileyItem from '@/components/SmileyItem.vue'
 import axios from 'axios'
 
 export default {
-  name: 'picker',
+  name: 'hello',
   components: {
     SmileyItem
   },
   data: () => ({
-    message: 'Click the hand.',
+    message: 'HOME COmponent Click the hand.',
     smileys:[],
     errors:[]
   }),

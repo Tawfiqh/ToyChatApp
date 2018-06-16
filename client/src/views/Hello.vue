@@ -1,6 +1,6 @@
 <template>
   <div id="hello" >
-    <p> HOME PAGE{{ message }}</p>
+    <p>{{ message }}</p>
 
     <a class="toggle-bar" v-on:click="addEmoji();" href="#">👇</a>
     <div class="smiley-container">
@@ -20,7 +20,7 @@ export default {
     SmileyItem
   },
   data: () => ({
-    message: 'HOME COmponent Click the hand.',
+    message: 'Click the hand.',
     smileys:[],
     errors:[]
   }),
