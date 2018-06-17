@@ -76,7 +76,7 @@ function getWordFromList(n){
 async function randomWords(){
 
   const n = await wordListLength();
-  const indx = _.random(n);
+  const indx = _.random(n); //Random number between 0 and n.
 
   const word = await getWordFromList(indx);
 

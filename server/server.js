@@ -22,7 +22,7 @@ router.get('/emoji', (ctx, next) => {
 
 router.get('/new-user-id', async (ctx, next) => {
   var newId = await randomWords();
-  newId = newId.replace(/[\s-]/g, "_");
+  newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
   ctx.body = randomEmoji() +newId + randomEmoji() ;
 });
 
