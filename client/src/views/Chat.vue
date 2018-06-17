@@ -2,13 +2,14 @@
   <div id="chat" >
     <h1> Chat! </h1>
     <h3>Your ID is: {{ myId }}</h3>
-    <form>
-        <input id="message" type="text" placeholder="message">
-        <input type="submit" value="Send">
-    </form>
+
+    <input type="text" v-on:keyup.enter="submitForm();" v-model="message" placeholder="Type message">
+    <a class="toggle-bar" v-on:click="submitForm();" href="#">🛫</a>
 
     <ul id="message-container">
-
+      <li v-for="(message, index) in messages" v-bind:key="index">
+        <span style="float: left;"> {{message.sender}} </span> {{message.message}}
+      </li>
     </ul>
   </div>
 
@@ -16,51 +17,45 @@
 
 <script>
 import axios from 'axios'
-import io from 'socket.io'
-
+import io from 'socket.io-client';
 
 export default {
   name: 'chat',
   components: {
   },
   data: () => ({
-    myId: "-"
+    myId: "-",
+    messages: [],
+    socket: null,
+    message: "",
   }),
   methods:{
+    submitForm(){
+      console.log("Submitting with:" + this.message);
+      this.socket.emit('messages', {sender: this.myId, message: this.message});
+      this.message = "";
+    }
   },
   mounted() {
-    this.myId = getNewId();
+   this.myId = getNewId();
+   this.socket = io("/");
 
-    console.log("mounted");
-    // initializing socket, connection to server
-    var socket = io("localhost:3000/");
-    console.log("mounted3");
-    console.log("2mounted");
+   var socket = this.socket;
 
-    socket.on('connect', function(data) {
-        socket.emit('join', 'Hello server from client');
-    });
+   socket.on('connect', function(data) {
+       socket.emit('join', 'Hello server from client');
+   });
 
-    function addToRecord(data, type){
-      $('#message-container').append('<li><span style="float: left;">' + type + '</span>' + data + '</li>');
-    }
-      // listener for 'cppp' event, which updates messages
-    socket.on('cppp', function(data) {
-      var sentBy = data.sender + "  : "
-      addToRecord(data.message, sentBy);
-    });
+   var messages = this.messages; //XXYZ - might be superfluous.
+   function addToRecord(data, sender){
+     messages.push({message:data, sender:sender});
+   }
+     // listener for 'cppp' event, which updates messages
+   socket.on('cppp', function(data) {
+     var sentBy = data.sender + "  : "
+     addToRecord(data.message, sentBy);
 
-      // sends message to server, resets & prevents default form action
-      $('form').submit(function() {
-      	var message = $('#message').val();
-      	socket.emit('messages', {sender: myId, message: message});
-      	// this.reset();
-      	return false;
-      });
-
-
-
-
+   });
 
     function getNewId(){
       // return "⛱folk_theater🇲🇦"
@@ -68,7 +63,14 @@ export default {
       var xmlHttp = new XMLHttpRequest();
       xmlHttp.open( "GET", "/new-user-id", false ); // false for synchronous request
       xmlHttp.send( null );
-      return xmlHttp.responseText || "⛱folk_theater🇲🇦";
+      console.log(xmlHttp);
+
+      if (xmlHttp.status == 200){
+        return xmlHttp.response
+      }
+      else{
+        return "⛱folk_theater🇲🇦"
+      }
     }
 
   },
