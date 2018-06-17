@@ -5,12 +5,16 @@ ToDo:
 
 2. ~~From Vue. Have a button that requests an emoji from a node backend.~~
 
-3. Move chat page into Vue. At a new route.
+3. ~~Move chat page into Vue. At a new route.~~
 
+4. Make chat page a vue-component.
+    Submit button needs to bind to a vue-method.
+    ul needs to be bound to a view/for loop.
+    Remove jQuery.  
 
-3. Write unit tests for helloWorld and emoji Endpoints.
+3. Server - Write unit tests for helloWorld and emoji Endpoints.
 
-4. Refactor endpoints into setup functions. e.g: `setupHelloWorldEndpoint();`
+4. Server - Refactor endpoints into setup functions. e.g: `setupHelloWorldEndpoint();`
 
 3. Login page - You enter a login ID and then you’re in the chat room and it posts messages with your name.
 

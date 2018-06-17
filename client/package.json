@@ -10,6 +10,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "lodash": "^4.17.10",
+    "socket.io": "^2.1.1",
     "vue": "^2.5.16",
     "vue-cli": "^2.9.6",
     "vue-router": "^3.0.1"
