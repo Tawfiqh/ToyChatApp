@@ -50,7 +50,7 @@ function getWordFromList(n){
           //Copy our results to a new buffer so we can take a substring.
           result = new Buffer.alloc(i - lastLine);
           chunk.copy(result, 0, lastLine, i);
-
+          // reader.close();  ? readable.destroy([error])
           result = result.toString('utf8');
 
          }
