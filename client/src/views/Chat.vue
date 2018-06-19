@@ -38,7 +38,9 @@ export default {
   },
   mounted() {
    this.myId = getNewId();
-   this.socket = io("/");
+   this.socket = io(process.env.VUE_APP_BASE_URL);
+
+   console.log("BaseURL:" + process.env.VUE_APP_BASE_URL)
 
    var socket = this.socket;
 
@@ -61,7 +63,7 @@ export default {
       // return "⛱folk_theater🇲🇦"
       console.log("getNewId")
       var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "GET", "/new-user-id", false ); // false for synchronous request
+      xmlHttp.open( "GET", `${process.env.VUE_APP_BASE_URL}new-user-id`, false ); // false for synchronous request
       xmlHttp.send( null );
       console.log(xmlHttp);
 

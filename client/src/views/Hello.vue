@@ -3,6 +3,7 @@
     <p>{{ message }}</p>
 
     <a class="toggle-bar" v-on:click="addEmoji();" href="#">👇</a>
+    <a class="toggle-bar" v-on:click="addEmojiExternal();" href="#">🛬</a>
     <div class="smiley-container">
       <SmileyItem v-for="emoji in smileys" v-bind:key="emoji" :smiley="{char: emoji}"></SmileyItem>
     </div>
@@ -28,9 +29,32 @@ export default {
    async addEmoji(){
 
      try {
-       const { data } = await axios.get(`/emoji`)
+       console.log(process.env.NODE_ENV);
+       console.log(process.env.VUE_APP_BASE_URL);
+       console.log(process.env.VUE_APP_RANDO);
+       const { data } = await axios.get(`${process.env.VUE_APP_BASE_URL}emoji`)
        // JSON responses are automatically parsed.
        this.smileys.push(data);
+
+     } catch (e) {
+       this.errors.push(e)
+       this.smileys.push("🚫")
+     }
+   },
+   async addEmojiExternal(){
+
+     try {
+       console.log(process.env.NODE_ENV);
+       console.log(process.env.VUE_APP_BASE_URL);
+       console.log(process.env.VUE_APP_RANDO);
+       const { data } = await axios.get(`https://ranmoji.herokuapp.com/emojis/api/v.1.0/`)
+       // JSON responses are automatically parsed.
+       console.log(data)
+       var tag = document.createElement('div');
+       tag.innerHTML = data.emoji;
+       var data2 = tag.innerText
+
+       this.smileys.push(data2)
 
      } catch (e) {
        this.errors.push(e)
