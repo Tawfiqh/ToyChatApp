@@ -50,8 +50,8 @@ export default {
    function addToRecord(data, sender){
      messages.push({message:data, sender:sender});
    }
-     // listener for 'cppp' event, which updates messages
-   socket.on('cppp', function(data) {
+     // listener for 'newMessage' event, which updates messages
+   socket.on('newMessage', function(data) {
      var sentBy = data.sender + "  : "
      addToRecord(data.message, sentBy);
 
@@ -75,7 +75,7 @@ export default {
 
   },
   beforeDestroy() {
-    // socket.removeListener('cppp', this.NewMessage);
+    this.socket.removeListener('newMessage');
   }
 }
 

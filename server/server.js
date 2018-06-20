@@ -78,18 +78,33 @@ function setupLogging(){
 
 
 function setupIoChatServer(){
+  var recentMessages =[];
+  var recentMessagesBufferSize = 5;
   io.on('connection', function(socket){
     console.log('a user connected')
 
     socket.on('join', function(data) {
   		console.log(data);
+      recentMessages.forEach((x) => {
+          socket.emit('newMessage', x); //Only sends to sender
+        }
+      );
+      console.log("end of contenc")
+
   	});
 
     socket.on('messages', function(data){
       console.log("Recieved: " + JSON.stringify(data))
+      recentMessages.push(data);
 
-      socket.emit('cppp', data);
-  		socket.broadcast.emit('cppp', data);
+
+      if (recentMessages.length > recentMessagesBufferSize){
+        recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
+      }
+
+      io.sockets.emit('newMessage', data); //Sends to everyone
+      // socket.emit('newMessage', data); //Only sends to sender
+  		// socket.broadcast.emit('newMessage', data); // doesn't send to sender.
   	});
   })
 }
