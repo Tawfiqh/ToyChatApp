@@ -8,7 +8,7 @@
 
     <ul id="message-container">
       <li v-for="(message, index) in messages" v-bind:key="index">
-        <span style="float: left;"> {{message.sender}} </span> {{message.message}}
+        <span class="user-span"> {{message.sender}} </span> {{message.message}}
       </li>
     </ul>
   </div>
@@ -103,11 +103,29 @@ li {
   width: 100vw;
   height: 35px;
   line-height: 35px;
+  text-align: left;
 }
 
-li:nth-child(odd) {
+.user-span{
+  float: left;
+  margin-right: 10px;
+}
+
+/* li:nth-child(odd) {
   background: #eee;
-}
+} */
 
+input{
+  font-family: 'Avenir Next', 'Helvetica', 'Arial', sans-serif;
+  height: 50px;
+    width: 50%;
+    margin: 10px;
+    font-size: 20px;
+    padding: 5px;
+    border-radius: 4px;
+    box-shadow: none;
+    border: 1px solid grey;
+    margin-bottom: 40px;
+}
 
 </style>
