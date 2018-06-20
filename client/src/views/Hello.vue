@@ -29,9 +29,7 @@ export default {
    async addEmoji(){
 
      try {
-       console.log(process.env.NODE_ENV);
-       console.log(process.env.VUE_APP_BASE_URL);
-       console.log(process.env.VUE_APP_RANDO);
+
        const { data } = await axios.get(`${process.env.VUE_APP_BASE_URL}emoji`)
        // JSON responses are automatically parsed.
        this.smileys.push(data);
@@ -44,12 +42,10 @@ export default {
    async addEmojiExternal(){
 
      try {
-       console.log(process.env.NODE_ENV);
-       console.log(process.env.VUE_APP_BASE_URL);
-       console.log(process.env.VUE_APP_RANDO);
+
        const { data } = await axios.get(`https://ranmoji.herokuapp.com/emojis/api/v.1.0/`)
        // JSON responses are automatically parsed.
-       console.log(data)
+       
        var tag = document.createElement('div');
        tag.innerHTML = data.emoji;
        var data2 = tag.innerText

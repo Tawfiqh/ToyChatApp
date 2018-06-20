@@ -11,6 +11,7 @@ router = new Router();
 const app = new Koa();
 
 setupLogging();
+enableCors();
 
 router.get('/hi', (ctx, next) => {
   ctx.body = 'Hello World!';
@@ -23,7 +24,9 @@ router.get('/emoji', (ctx, next) => {
 router.get('/new-user-id', async (ctx, next) => {
   var newId = await randomWords();
   newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
-  ctx.body = randomEmoji() +newId + randomEmoji() ;
+  newId = randomEmoji() + newId + randomEmoji() ;
+  console.log("newId:" + newId);
+  ctx.body = newId
 });
 
 app.use(router.routes()).use(router.allowedMethods());
@@ -41,33 +44,34 @@ const io = new socket(server)
 setupIoChatServer();
 
 
-
+function enableCors(){
+  app.use(async (ctx, next) => {
+    ctx.set('Access-Control-Allow-Origin', "http://localhost:8080");
+    ctx.set('Access-Control-Allow-Credentials', 'true');
+    await next();
+  });
+}
 
 function setupLogging(){
   //Init request
-  // app.use(async (ctx, next) => {
-  //   console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
-  //   await next();
-  // });
   // x-response-time
-  app.use(async (ctx, next) => {
-    const start = Date.now();
-    await next();
-    const ms = Date.now() - start;
-    ctx.set('X-Response-Time', `${ms}ms`);
-  });
+  // app.use(async (ctx, next) => {
+  //   const start = Date.now();
+  //   await next();
+  //   const ms = Date.now() - start;
+  //   ctx.set('X-Response-Time', `${ms}ms`);
+  // });
   // logger
   app.use(async (ctx, next) => {
+    console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
+    console.log(`>>>${ctx.method} ${ctx.url} start ⏰ \n`);
     const start = Date.now();
     await next();
     const ms = Date.now() - start;
-    console.log(`${ctx.method} ${ctx.url} - TimeTaken:${ms}`);
-  });
-
-  app.use(async (ctx, next) => {
-    await next();
+    console.log(`\n>>> ${ctx.method} ${ctx.url} --- TimeTaken:${ms}`);
     console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
   });
+
 }
 
 

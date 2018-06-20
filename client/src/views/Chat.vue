@@ -40,8 +40,6 @@ export default {
    this.myId = getNewId();
    this.socket = io(process.env.VUE_APP_BASE_URL);
 
-   console.log("BaseURL:" + process.env.VUE_APP_BASE_URL)
-
    var socket = this.socket;
 
    socket.on('connect', function(data) {
