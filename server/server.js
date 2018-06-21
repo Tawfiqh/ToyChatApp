@@ -79,7 +79,7 @@ function setupLogging(){
 
 function setupIoChatServer(){
   var recentMessages =[];
-  var recentMessagesBufferSize = 5;
+  var recentMessagesBufferSize = 10;
   io.on('connection', function(socket){
     console.log('a user connected')
 

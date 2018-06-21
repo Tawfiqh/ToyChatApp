@@ -48,7 +48,7 @@ export default {
 
    var messages = this.messages; //XXYZ - might be superfluous.
    function addToRecord(data, sender){
-     messages.push({message:data, sender:sender});
+     messages.unshift({message:data, sender:sender});
    }
      // listener for 'newMessage' event, which updates messages
    socket.on('newMessage', function(data) {
