@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div id="nav" v-bind:class='{ "flared-nav": devMode }'>
-      <router-link to="/">/</router-link> |
+      <router-link to="/">👇</router-link> |
       <router-link to="/chat">chat</router-link>
     </div>
     <router-view/>

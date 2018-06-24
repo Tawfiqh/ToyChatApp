@@ -21,6 +21,27 @@ router.get('/emoji', (ctx, next) => {
   ctx.body = randomEmoji();
 });
 
+router.get('/status', (ctx, next) => {
+
+  var clients = [];
+
+  for(var client in io.engine.clients){
+
+    var clientToAdd = _.pick(io.engine.clients[client],["id", "readyState", "remoteAddress"] )
+    clients.push(clientToAdd);
+
+  }
+
+  var result = {
+    peopleConnected: io.engine.clientsCount,
+    clients: clients,
+    messageBuffer: recentMessages,
+  };
+
+  var prettyResult = JSON.stringify(result, null, 2);
+  ctx.body = prettyResult;
+});
+
 router.get('/new-user-id', async (ctx, next) => {
   var newId = await randomWords();
   newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
@@ -41,6 +62,7 @@ console.log("now listening localhost:3000")
 
 
 const io = new socket(server)
+var recentMessages =[];
 setupIoChatServer();
 
 
@@ -78,7 +100,6 @@ function setupLogging(){
 
 
 function setupIoChatServer(){
-  var recentMessages =[];
   var recentMessagesBufferSize = 10;
   io.on('connection', function(socket){
     console.log('a user connected')
@@ -89,8 +110,6 @@ function setupIoChatServer(){
           socket.emit('newMessage', x); //Only sends to sender
         }
       );
-      console.log("end of contenc")
-
   	});
 
     socket.on('messages', function(data){
@@ -104,7 +123,7 @@ function setupIoChatServer(){
 
       io.sockets.emit('newMessage', data); //Sends to everyone
       // socket.emit('newMessage', data); //Only sends to sender
-  		// socket.broadcast.emit('newMessage', data); // doesn't send to sender.
+  		// socket.broadcast.emit('newMessage', data); // sends to everyone apart from sender.
   	});
   })
 }

@@ -5,6 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build; rm -rf ../public; mv dist ../public",
+    "whole_shebang": "npm install; npm run build; npm run serve",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {

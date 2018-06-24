@@ -7,10 +7,17 @@ ToDo:
 
 3. ~~Move chat page into Vue. At a new route.~~
 
-4. Make chat page a vue-component.
+4. ~~Make chat page a vue-component.
     Submit button needs to bind to a vue-method.
-    ul needs to be bound to a view/for loop.
-    Remove jQuery.  
+    ul needs to be bound to a view/for loop.~~
+
+5. Status page.
+
+6. Refactor into a sockets module.
+
+7. Database to store chats
+
+8. Fix bug with reconnecting after some time
 
 3. Server - Write unit tests for helloWorld and emoji Endpoints.
 

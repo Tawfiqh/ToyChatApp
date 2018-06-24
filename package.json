@@ -7,6 +7,7 @@
     "postinstall": " cd client && npm install",
     "build-client": "cd client && npm run build",
     "setup": "npm install; npm run build-client",
+    "whole_shebang": "npm run setup; npm run serve",
     "serve": "nodemon server/server.js"
   },
   "author": "",
