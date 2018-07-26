@@ -57,7 +57,7 @@ const resolvers = {
 // In the most basic sense, the ApolloServer can be started
 // by passing type definitions (typeDefs) and the resolvers
 // responsible for fetching the data for those types.
-const server = new ApolloServer(
+const apolloServer = new ApolloServer(
   {
     typeDefs: schema,
     resolvers,
@@ -66,68 +66,77 @@ const server = new ApolloServer(
 
 // This `listen` method launches a web-server.  Existing apps
 // can utilize middleware options, which we'll discuss later.
-server.listen().then(({ url }) => {
+apolloServer.listen({
+  host: 'localhost',
+  port: 4000,
+  exclusive: true
+}).then(({url}) => {
+  console.log(`🚀  Server ready at ${url}`);
+});
+
+apolloServer.listen().then(({ url }) => {
   console.log(`🚀  Server ready at ${url}`);
 });
 
 
-// router = new Router();
-// const app = new Koa();
-//
-// setupLogging();
-// enableCors();
-//
-// router.get('/hi', (ctx, next) => {
-//   ctx.body = 'Hello World!';
-// });
-//
-// router.get('/emoji', (ctx, next) => {
-//   ctx.body = randomEmoji();
-// });
-//
-// router.get('/status', (ctx, next) => {
-//
-//   var clients = [];
-//
-//   for(var client in io.engine.clients){
-//
-//     var clientToAdd = _.pick(io.engine.clients[client],["id", "readyState", "remoteAddress"] )
-//     clients.push(clientToAdd);
-//
-//   }
-//
-//   var result = {
-//     peopleConnected: io.engine.clientsCount,
-//     clients: clients,
-//     messageBuffer: recentMessages,
-//   };
-//
-//   var prettyResult = JSON.stringify(result, null, 2);
-//   ctx.body = prettyResult;
-// });
-//
-// router.get('/new-user-id', async (ctx, next) => {
-//   var newId = await randomWords();
-//   newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
-//   newId = randomEmoji() + newId + randomEmoji() ;
-//   console.log("newId:" + newId);
-//   ctx.body = newId
-// });
-//
-// app.use(router.routes()).use(router.allowedMethods());
-//
-// router.redirect('/chat', '/chat.html');
-//
-// app.use(serve('./public'));
-// app.use(serve('./basic-client'));
-//
-// var server = app.listen(3000);
-// console.log("now listening localhost:3000")
-//
-//
-// const io = new socket(server)
-// var recentMessages =[];
-// setupIoChatServer();
+
+router = new Router();
+const app = new Koa();
+
+setupLogging();
+enableCors();
+
+router.get('/hi', (ctx, next) => {
+  ctx.body = 'Hello World!';
+});
+
+router.get('/emoji', (ctx, next) => {
+  ctx.body = randomEmoji();
+});
+
+router.get('/status', (ctx, next) => {
+
+  var clients = [];
+
+  for(var client in io.engine.clients){
+
+    var clientToAdd = _.pick(io.engine.clients[client],["id", "readyState", "remoteAddress"] )
+    clients.push(clientToAdd);
+
+  }
+
+  var result = {
+    peopleConnected: io.engine.clientsCount,
+    clients: clients,
+    messageBuffer: recentMessages,
+  };
+
+  var prettyResult = JSON.stringify(result, null, 2);
+  ctx.body = prettyResult;
+});
+
+router.get('/new-user-id', async (ctx, next) => {
+  var newId = await randomWords();
+  newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
+  newId = randomEmoji() + newId + randomEmoji() ;
+  console.log("newId:" + newId);
+  ctx.body = newId
+});
+
+app.use(router.routes()).use(router.allowedMethods());
+
+router.redirect('/chat', '/chat.html');
+
+app.use(serve('./public'));
+app.use(serve('./basic-client'));
+
+var server = app.listen(3000);
+console.log("now listening localhost:3000")
+
+
+const io = new socket(server)
+var recentMessages =[];
+setupIoChatServer();
 
 
 function enableCors(){
