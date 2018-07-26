@@ -7,49 +7,64 @@ const randomWords = require('./random-words/random-words')
 const socket = require('socket.io');
 const { ApolloServer, gql } = require('apollo-server-koa');
 
-
-
-
-const schema = gql`
-  type Query { # define the query
-    hello: String # define the fields
-    byeBye: String
-    getUsers: [User]
-    getUsersAboveAge(age: Int!): [User]
-    rollDice(numDice: Int!, numSides: Int): [Int]
-  }
-
-  type User { # define the type
-    name: String
-    age: Int
-  }
-`;
-
-class User {
-  constructor(name,age) {
-    this.name = name
-    this.age = age
-  }
-}
-
-const users = [
+var users = [
   new User("Tim", 34),
   new User("Terrence", 31),
   new User("Alan", 23),
 ];
 
-// Resolvers define the technique for fetching the types in the
-// schema.  We'll retrieve books from the "books" array above.
-const resolvers = {
-  Query:{
-    hello: ()  => "World",
-    byeBye: ()  => "👋 ",
-    getUsers: () => users,
-    getUsersAboveAge: (result, {age}) => {
-      return users.filter(a => a.age > age)
-    },
+var messages = [];
 
+var chats = [];
+
+
+function graphQlSetup(){
+  const schema = gql`
+    type Query { # define the query
+      hello: String # define the fields
+      byeBye: String
+      getUsers: [User]
+      getUsersAboveAge(age: Int!): [User]
+      rollDice(numDice: Int!, numSides: Int): [Int]
+    }
+
+    type User { # define the type
+      name: String
+      age: Int
+    }
+  `;
+
+  class User {
+    constructor(name,age) {
+      this.name = name
+      this.age = age
+    }
   }
+
+
+  // Resolvers define the technique for fetching the types in the
+  // schema.  We'll retrieve books from the "books" array above.
+  const resolvers = {
+    Query:{
+      hello: ()  => "World",
+      byeBye: ()  => "👋 ",
+      getUsers: () => users,
+      getUsersAboveAge: (result, {age}) => {
+        return users.filter(a => a.age > age)
+      },
+
+    }
+  };
+
+  return new ApolloServer(
+   {
+     typeDefs: schema,
+     resolvers,
+     formatError: (err) => { console.log(err); return err }
+   }
+  );
+
+
 };
 
 
@@ -104,13 +119,7 @@ app.use(serve('./public'));
 app.use(serve('./basic-client'));
 
 
-const apolloserver = new ApolloServer(
- {
-   typeDefs: schema,
-   resolvers,
-   formatError: (err) => { console.log(err); return err }
- }
-);
+const apolloserver = graphQlSetup();
 
 apolloserver.applyMiddleware({ app, path:'/graph' });
 
