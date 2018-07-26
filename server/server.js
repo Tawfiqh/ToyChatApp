@@ -53,29 +53,6 @@ const resolvers = {
 };
 
 
-// In the most basic sense, the ApolloServer can be started
-// by passing type definitions (typeDefs) and the resolvers
-// responsible for fetching the data for those types.
-// const apolloServer = new ApolloServer(
-//   {
-//     typeDefs: schema,
-//     resolvers,
-//     formatError: (err) => { console.log(err); return err }
-//   }
-// );
-
-// This `listen` method launches a web-server.  Existing apps
-// can utilize middleware options, which we'll discuss later.
-// apolloServer.listen('/graph').then(({url}) => {
-//   console.log(`🚀  Server ready at ${url}`);
-// });
-
-// apolloServer.listen().then(({ url }) => {
-//   console.log(`🚀  Server ready at ${url}`);
-// });
-
-
-
 router = new Router();
 const app = new Koa();
 
@@ -135,15 +112,14 @@ const apolloserver = new ApolloServer(
  }
 );
 
-apolloserver.applyMiddleware({ app });
-
-// app.listen({ port: 3000 }, () =>
-//   console.log(`🚀 Server ready at http://localhost:4000${apolloserver.graphqlPath}`),
-// );
+apolloserver.applyMiddleware({ app, path:'/graph' });
 
 
-var server = app.listen(3000);
-console.log("now listening localhost:3000")
+var server = app.listen({ port: 3000 }, (url) => {
+  console.log(`Server ready at :3000`);
+  console.log(`📈 🚀  Server ready at :3000${apolloserver.graphqlPath}`);
+});
+
 
 
 const io = new socket(server)
