@@ -4,7 +4,7 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const socket = require('socket.io');
 const { ApolloServer, gql } = require('apollo-server-koa');
-
+const sqlite3 = require('sqlite3');
 
 const randomEmoji = require('./random-emoji')
 const randomWords = require('./random-words/random-words')
@@ -12,6 +12,13 @@ const randomWords = require('./random-words/random-words')
 router = new Router();
 const app = new Koa();
 
+var db = null;
+
+function db_start(){
+  db = new sqlite3.Database('chatDatabase.sqlite3');
+};
+
+setupDb();
 setupLogging();
 enableCors();
 setupOtherEndpoints();
@@ -123,6 +130,22 @@ function setupIoChatServer(){
       console.log("Recieved: " + JSON.stringify(data))
       recentMessages.push(data);
 
+      db_start()
+      const insertData = `'${data["message"]}', '${data["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
+
+      let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
+      console.log("sql:" + sql);
+      db.all(sql, [], (err, rows) => {
+        if (err) {
+          throw err;
+        }
+        rows.forEach((row) => {
+          console.log(row.name);
+        });
+      });
+
+      // close the database connection
+      db.close();
 
       if (recentMessages.length > recentMessagesBufferSize){
         recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
@@ -190,7 +213,7 @@ function graphQlSetup(){
   var messages = [];
 
   var chats = [];
-  
+
   const schema = gql`
     type Query { # define the query
       hello: String # define the fields
@@ -198,6 +221,13 @@ function graphQlSetup(){
       getUsers: [User]
       getUsersAboveAge(age: Int!): [User]
       rollDice(numDice: Int!, numSides: Int): [Int]
+      getMessages: [Message]
+    }
+
+    type Message{
+      timestamp: String
+      body: String
+      sender: String
     }
 
     type User { # define the type
@@ -217,7 +247,26 @@ function graphQlSetup(){
       getUsersAboveAge: (result, {age}) => {
         return users.filter(a => a.age > age)
       },
+      getMessages: () => {
+        db_start()
+        rowsToRet = [];
+        let sql = `SELECT timestamp, body, userId FROM messages;`;
+        // console.log("sql:" + sql);
+        db.all(sql, [], (err, rows) => {
+          if (err) {
+            throw err;
+          }
+          rows.forEach((row) => {
+            rowsToRet.push(row);
+            console.log(row);
+          });
+        });
 
+        // close the database connection
+        db.close();
+
+        return rowsToRet;
+      }
     }
   };
 
@@ -233,3 +282,17 @@ function graphQlSetup(){
   apolloserver.applyMiddleware({ app, path:'/graph' });
 
 };
+
+
+function setupDb(){
+  db_start();
+
+  db.serialize(function() {
+    db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId TEXT, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS users (userId TEXT, sender Int, timestamp TEXT)");
+    // db.run("CREATE TABLE IF NOT EXISTS chats (userId TEXT, sender Int, timestamp DATETIME(6))");
+  });
+
+  db.close();
+
+}
