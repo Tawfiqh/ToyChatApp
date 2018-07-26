@@ -11,9 +11,9 @@ ToDo:
     Submit button needs to bind to a vue-method.
     ul needs to be bound to a view/for loop.~~
 
-5. Status page.
+5. ~~Status page.~~
 
-6. Refactor into a sockets module.
+6. Refactor sockets login into a clean sockets module.
 
 7. Database to store chats
 

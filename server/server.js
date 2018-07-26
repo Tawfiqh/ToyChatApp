@@ -2,139 +2,37 @@ const serve = require('koa-static');
 const _ = require('lodash');
 const Koa = require('koa');
 const Router = require('koa-router');
-const randomEmoji = require('./random-emoji')
-const randomWords = require('./random-words/random-words')
 const socket = require('socket.io');
 const { ApolloServer, gql } = require('apollo-server-koa');
 
-var users = [
-  new User("Tim", 34),
-  new User("Terrence", 31),
-  new User("Alan", 23),
-];
 
-var messages = [];
-
-var chats = [];
-
-
-function graphQlSetup(){
-  const schema = gql`
-    type Query { # define the query
-      hello: String # define the fields
-      byeBye: String
-      getUsers: [User]
-      getUsersAboveAge(age: Int!): [User]
-      rollDice(numDice: Int!, numSides: Int): [Int]
-    }
-
-    type User { # define the type
-      name: String
-      age: Int
-    }
-  `;
-
-  class User {
-    constructor(name,age) {
-      this.name = name
-      this.age = age
-    }
-  }
-
-
-  // Resolvers define the technique for fetching the types in the
-  // schema.  We'll retrieve books from the "books" array above.
-  const resolvers = {
-    Query:{
-      hello: ()  => "World",
-      byeBye: ()  => "👋 ",
-      getUsers: () => users,
-      getUsersAboveAge: (result, {age}) => {
-        return users.filter(a => a.age > age)
-      },
-
-    }
-  };
-
-  return new ApolloServer(
-   {
-     typeDefs: schema,
-     resolvers,
-     formatError: (err) => { console.log(err); return err }
-   }
-  );
-
-
-};
-
+const randomEmoji = require('./random-emoji')
+const randomWords = require('./random-words/random-words')
 
 router = new Router();
 const app = new Koa();
 
 setupLogging();
 enableCors();
-
-router.get('/hi', (ctx, next) => {
-  ctx.body = 'Hello World!';
-});
-
-router.get('/emoji', (ctx, next) => {
-  ctx.body = randomEmoji();
-});
-
-router.get('/status', (ctx, next) => {
-
-  var clients = [];
-
-  for(var client in io.engine.clients){
-
-    var clientToAdd = _.pick(io.engine.clients[client],["id", "readyState", "remoteAddress"] )
-    clients.push(clientToAdd);
-
-  }
-
-  var result = {
-    peopleConnected: io.engine.clientsCount,
-    clients: clients,
-    messageBuffer: recentMessages,
-  };
-
-  var prettyResult = JSON.stringify(result, null, 2);
-  ctx.body = prettyResult;
-});
-
-router.get('/new-user-id', async (ctx, next) => {
-  var newId = await randomWords();
-  newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
-  newId = randomEmoji() + newId + randomEmoji() ;
-  console.log("newId:" + newId);
-  ctx.body = newId
-});
-
-app.use(router.routes()).use(router.allowedMethods());
-
-router.redirect('/chat', '/chat.html');
-
-app.use(serve('./public'));
-app.use(serve('./basic-client'));
-
-
-const apolloserver = graphQlSetup();
-
-apolloserver.applyMiddleware({ app, path:'/graph' });
-
+setupOtherEndpoints();
+graphQlSetup();
 
 var server = app.listen({ port: 3000 }, (url) => {
   console.log(`Server ready at :3000`);
-  console.log(`📈 🚀  Server ready at :3000${apolloserver.graphqlPath}`);
 });
 
-
-
+// Needs to happen after starting the server (I think)
 const io = new socket(server)
 var recentMessages =[];
 setupIoChatServer();
 
+
+
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Setup Functions
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 function enableCors(){
   app.use(async (ctx, next) => {
@@ -143,6 +41,38 @@ function enableCors(){
     await next();
   });
 }
+
+function setupOtherEndpoints(){
+
+  router.get('/hi', (ctx, next) => {
+    ctx.body = 'Hello World!';
+  });
+
+  router.get('/emoji', (ctx, next) => {
+   ctx.body = randomEmoji();
+  });
+
+  router.get('/status', (ctx, next) => {
+    ctx.body = calculateServerStatus();
+  });
+
+  router.get('/new-user-id', async (ctx, next) => {
+    ctx.body = await formatNewUserId();
+  });
+
+  app.use(router.routes()).use(router.allowedMethods());
+
+  router.redirect('/chat', '/chat.html');
+  app.use(serve('./public'));
+  app.use(serve('./basic-client'));
+
+}
+
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Logging
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 function setupLogging(){
   //Init request
@@ -167,6 +97,13 @@ function setupLogging(){
 }
 
 
+
+
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Chat
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
 function setupIoChatServer(){
@@ -197,3 +134,102 @@ function setupIoChatServer(){
   	});
   })
 }
+
+async function formatNewUserId(){
+
+  var newId = await randomWords();
+  newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
+  newId = randomEmoji() + newId + randomEmoji() ;
+  console.log("newId:" + newId);
+
+  return newId;
+
+}
+
+
+function calculateServerStatus(){
+  var clients = [];
+
+  for(var client in io.engine.clients){
+
+    var clientToAdd = _.pick(io.engine.clients[client],["id", "readyState", "remoteAddress"] )
+    clients.push(clientToAdd);
+
+  }
+
+  var result = {
+    peopleConnected: io.engine.clientsCount,
+    clients: clients,
+    messageBuffer: recentMessages,
+  };
+
+  var prettyResult = JSON.stringify(result, null, 2);
+  return prettyResult;
+}
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Graph QL - Setup.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+function graphQlSetup(){
+
+  class User {
+    constructor(name,age) {
+      this.name = name
+      this.age = age
+    }
+  }
+
+  var users = [
+    new User("Tim", 34),
+    new User("Terrence", 31),
+    new User("Alan", 23),
+  ];
+
+  var messages = [];
+
+  var chats = [];
+  
+  const schema = gql`
+    type Query { # define the query
+      hello: String # define the fields
+      byeBye: String
+      getUsers: [User]
+      getUsersAboveAge(age: Int!): [User]
+      rollDice(numDice: Int!, numSides: Int): [Int]
+    }
+
+    type User { # define the type
+      name: String
+      age: Int
+    }
+  `;
+
+
+  // Resolvers define the technique for fetching the types in the
+  // schema.  We'll retrieve books from the "books" array above.
+  const resolvers = {
+    Query:{
+      hello: ()  => "World",
+      byeBye: ()  => "👋 ",
+      getUsers: () => users,
+      getUsersAboveAge: (result, {age}) => {
+        return users.filter(a => a.age > age)
+      },
+
+    }
+  };
+
+
+  const apolloserver =  new ApolloServer(
+   {
+     typeDefs: schema,
+     resolvers,
+     formatError: (err) => { console.log(err); return err }
+   }
+  );
+
+  apolloserver.applyMiddleware({ app, path:'/graph' });
+
+};
