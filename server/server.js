@@ -10,20 +10,13 @@ const { ApolloServer, gql } = require('apollo-server');
 
 
 
-class User {
-  constructor(name,age) {
-    this.name = name
-    this.age = age
-  }
-}
-
 
 const schema = gql`
   type Query { # define the query
     hello: String # define the fields
     byeBye: String
     getUsers: [User]
-    getUsersByAge(age: Int!): [User]
+    getUsersAboveAge(age: Int!): [User]
     rollDice(numDice: Int!, numSides: Int): [Int]
   }
 
@@ -32,6 +25,13 @@ const schema = gql`
     age: Int
   }
 `;
+
+class User {
+  constructor(name,age) {
+    this.name = name
+    this.age = age
+  }
+}
 
 const users = [
   new User("Tim", 34),
@@ -46,16 +46,9 @@ const resolvers = {
     hello: ()  => "World",
     byeBye: ()  => "👋 ",
     getUsers: () => users,
-    getUsersByAge: (result, {age}) => {
-      return users.filter(a => a.age >= age)
+    getUsersAboveAge: (result, {age}) => {
+      return users.filter(a => a.age > age)
     },
-    rollDice: function (result, {numDice, numSides}, context, info) {
-      var output = [];
-      for (var i = 0; i < numDice; i++) {
-        output.push(1 + Math.floor(Math.random() * (numSides || 6)));
-      }
-      return output;
-    }
 
   }
 };
