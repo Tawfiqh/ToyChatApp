@@ -248,24 +248,39 @@ function graphQlSetup(){
         return users.filter(a => a.age > age)
       },
       getMessages: () => {
-        db_start()
-        rowsToRet = [];
-        let sql = `SELECT timestamp, body, userId FROM messages;`;
-        // console.log("sql:" + sql);
-        db.all(sql, [], (err, rows) => {
-          if (err) {
-            throw err;
-          }
-          rows.forEach((row) => {
-            rowsToRet.push(row);
-            console.log(row);
+        
+        return new Promise( function(resolve, reject){
+
+          db_start();
+
+          results = [];
+
+          let sql = `SELECT timestamp, body, userId FROM messages;`;
+          // console.log("sql:" + sql);
+          db.all(sql, [], (err, rows) => {
+            if (err) {
+              console.log("naaaah");
+              reject(err);
+            }
+
+            rows.forEach((row) => {
+              results.push({
+                body: row["body"],
+                sender: row["userId"],
+                timestamp: row["timestamp"],
+              });
+
+              console.log(row);
+
+            });
+
+            resolve(results);
           });
+
+          // close the database connection
+          db.close();
         });
 
-        // close the database connection
-        db.close();
-
-        return rowsToRet;
       }
     }
   };
