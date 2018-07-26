@@ -12,7 +12,7 @@ function addToRecord(data, type){
   $('#message-container').append('<li><span style="float: left;">' + type + '</span>' + data + '</li>');
 }
   // listener for 'cppp' event, which updates messages
-socket.on('cppp', function(data) {
+socket.on('newMessage', function(data) {
   var sentBy = data.sender + "  : "
   addToRecord(data.message, sentBy);
 });
