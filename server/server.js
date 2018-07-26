@@ -5,8 +5,7 @@ const Router = require('koa-router');
 const randomEmoji = require('./random-emoji')
 const randomWords = require('./random-words/random-words')
 const socket = require('socket.io');
-
-const { ApolloServer, gql } = require('apollo-server');
+const { ApolloServer, gql } = require('apollo-server-koa');
 
 
 
@@ -57,26 +56,23 @@ const resolvers = {
 // In the most basic sense, the ApolloServer can be started
 // by passing type definitions (typeDefs) and the resolvers
 // responsible for fetching the data for those types.
-const apolloServer = new ApolloServer(
-  {
-    typeDefs: schema,
-    resolvers,
-    formatError: (err) => { console.log(err); return err }
-  });
+// const apolloServer = new ApolloServer(
+//   {
+//     typeDefs: schema,
+//     resolvers,
+//     formatError: (err) => { console.log(err); return err }
+//   }
+// );
 
 // This `listen` method launches a web-server.  Existing apps
 // can utilize middleware options, which we'll discuss later.
-apolloServer.listen({
-  host: 'localhost',
-  port: 4000,
-  exclusive: true
-}).then(({url}) => {
-  console.log(`🚀  Server ready at ${url}`);
-});
+// apolloServer.listen('/graph').then(({url}) => {
+//   console.log(`🚀  Server ready at ${url}`);
+// });
 
-apolloServer.listen().then(({ url }) => {
-  console.log(`🚀  Server ready at ${url}`);
-});
+// apolloServer.listen().then(({ url }) => {
+//   console.log(`🚀  Server ready at ${url}`);
+// });
 
 
 
@@ -129,6 +125,22 @@ router.redirect('/chat', '/chat.html');
 
 app.use(serve('./public'));
 app.use(serve('./basic-client'));
+
+
+const apolloserver = new ApolloServer(
+ {
+   typeDefs: schema,
+   resolvers,
+   formatError: (err) => { console.log(err); return err }
+ }
+);
+
+apolloserver.applyMiddleware({ app });
+
+// app.listen({ port: 3000 }, () =>
+//   console.log(`🚀 Server ready at http://localhost:4000${apolloserver.graphqlPath}`),
+// );
+
 
 var server = app.listen(3000);
 console.log("now listening localhost:3000")

@@ -16,7 +16,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 import io from 'socket.io-client';
 
 export default {

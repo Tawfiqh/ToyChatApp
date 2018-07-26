@@ -13,7 +13,6 @@
 
 <script>
 import SmileyItem from '@/components/SmileyItem.vue'
-import axios from 'axios'
 
 export default {
   name: 'hello',
@@ -30,7 +29,7 @@ export default {
 
      try {
 
-       const { data } = await axios.get(`${process.env.VUE_APP_BASE_URL}emoji`)
+       const { data } = await this.axios.get(`${process.env.VUE_APP_BASE_URL}emoji`)
        // JSON responses are automatically parsed.
        this.smileys.push(data);
 
@@ -43,9 +42,9 @@ export default {
 
      try {
 
-       const { data } = await axios.get(`https://ranmoji.herokuapp.com/emojis/api/v.1.0/`)
+       const { data } = await this.axios.get(`https://ranmoji.herokuapp.com/emojis/api/v.1.0/`)
        // JSON responses are automatically parsed.
-       
+
        var tag = document.createElement('div');
        tag.innerHTML = data.emoji;
        var data2 = tag.innerText
@@ -57,16 +56,7 @@ export default {
        this.smileys.push("🚫")
      }
    },
-   async NewMessage(data) {
-
-   },
   },
-  // mounted() {
-  //   socket.on('cppp', this.NewMessage);
-  // },
-  // beforeDestroy() {
-  //   socket.removeListener('cppp', this.NewMessage);
-  // }
 }
 </script>
 
