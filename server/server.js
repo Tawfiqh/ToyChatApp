@@ -159,7 +159,6 @@ function setupIoChatServer(){
 }
 
 async function formatNewUserId(){
-
   var newId = await randomWords();
   newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
   newId = randomEmoji() + newId + randomEmoji() ;
@@ -221,7 +220,9 @@ function graphQlSetup(){
       getUsers: [User]
       getUsersAboveAge(age: Int!): [User]
       rollDice(numDice: Int!, numSides: Int): [Int]
-      getMessages: [Message]
+      getMessages: [Message],
+      newUser: User
+
     }
 
     type Message{
@@ -232,7 +233,7 @@ function graphQlSetup(){
 
     type User { # define the type
       name: String
-      age: Int
+      timestamp: Int
     }
   `;
 
@@ -248,7 +249,7 @@ function graphQlSetup(){
         return users.filter(a => a.age > age)
       },
       getMessages: () => {
-        
+
         return new Promise( function(resolve, reject){
 
           db_start();
@@ -281,6 +282,10 @@ function graphQlSetup(){
           db.close();
         });
 
+      },
+      newUser: async () => {
+        var name = await formatNewUserId();
+        return new User(name, 99);
       }
     }
   };

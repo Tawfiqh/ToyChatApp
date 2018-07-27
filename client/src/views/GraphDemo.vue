@@ -23,8 +23,6 @@ export default {
 
   },
   async mounted() {
-                      // ${process.env.VUE_APP_BASE_URL}
-                      // ${process.env.VUE_APP_BASE_URL}
     const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
     var body = { "query": "{getUsers{name age}}" };
     const { data } = await this.axios.post( endpoint, body );

@@ -1,6 +1,8 @@
 <template>
   <div id="chat" >
     <h1> Graph QL Chat! </h1>
+    <h4> {{ query }} </h4>
+    <h3> {{ queryResult }} </h3>
     <h3>Your ID is: {{ myId }}</h3>
 
     <input type="text" v-on:keyup.enter="submitForm();" v-model="message" placeholder="Type message">
@@ -18,25 +20,40 @@
 <script>
 import io from 'socket.io-client';
 
+
 export default {
   name: 'GraphChat',
-  components: {
-  },
   data: () => ({
     myId: "-",
     messages: [],
-    socket: null,
     message: "",
+    query: "{?}",
+    queryResult: "?"
   }),
   methods:{
     submitForm(){
       console.log("Submitting with:" + this.message);
-      this.socket.emit('messages', {sender: this.myId, message: this.message});
+      // this.socket.emit('messages', {sender: this.myId, message: this.message});
       this.message = "";
+    },
+    async getNewId(){
+      // return "⛱ folk_theater🇲🇦 "
+
+      const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
+      var body = { "query": "{newUser{ name }}" };
+      const { data } = await this.axios.post( endpoint, body );
+
+
+      return this._.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
+
     }
   },
-  mounted() {
-   this.myId = getNewId();
+  beforeMount() {
+
+   this.getNewId().then((res)=>{
+     this.myId = res;
+   });
+
    this.socket = io(process.env.VUE_APP_BASE_URL);
 
    var socket = this.socket;
@@ -56,21 +73,6 @@ export default {
 
    });
 
-    function getNewId(){
-      // return "⛱folk_theater🇲🇦"
-      console.log("getNewId")
-      var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "GET", `${process.env.VUE_APP_BASE_URL}new-user-id`, false ); // false for synchronous request
-      xmlHttp.send( null );
-      console.log(xmlHttp);
-
-      if (xmlHttp.status == 200){
-        return xmlHttp.response
-      }
-      else{
-        return "⛱folk_theater🇲🇦"
-      }
-    }
 
   },
   beforeDestroy() {
