@@ -195,6 +195,9 @@ function calculateServerStatus(){
 
 
 function graphQlSetup(){
+  import { PubSub, withFilter } from 'graphql-subscriptions';
+
+  export const pubsub = new PubSub();
 
   class User {
     constructor(name,age) {
@@ -221,6 +224,15 @@ function graphQlSetup(){
       getUsersAboveAge(age: Int!): [User]
       messages(limit: Int): [Message]
       newUser: User
+    }
+
+    type Comment {
+    id: String
+    content: String
+    }
+
+    type Subscription {
+      commentAdded(repoFullName: String!): Comment
     }
 
     type Mutation {
@@ -328,10 +340,26 @@ function graphQlSetup(){
         // close the database connection
         db.close();
 
+
+        const payload = {
+            commentAdded: {
+                id: '1',
+                content: 'Hello!',
+            }
+        };
+
+        pubsub.publish('commentAdded', payload);
+
+
         return { body: message["body"], sender: message["sender"] };
 
       }
-    }
+    },
+    Subscription: {
+           commentAdded: {
+             subscribe: () => pubsub.asyncIterator('commentAdded')
+           }
+    },
   };
 
 
