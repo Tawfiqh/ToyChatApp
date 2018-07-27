@@ -106,8 +106,17 @@ li {
 }
 
 .user-span{
-  float: left;
   margin-right: 10px;
+}
+
+.time-span{
+  margin-right: 10px;
+  font-family: "avenir next";
+  font-weight: 400;
+  font-style: italic;
+  font-size: 16px;
+  vertical-align: top;
+  margin-left: 7px;
 }
 
 /* li:nth-child(odd) {

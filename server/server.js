@@ -217,10 +217,9 @@ function graphQlSetup(){
     type Query { # define the query
       hello: String # define the fields
       byeBye: String
-      getUsers: [User]
+      Users: [User]
       getUsersAboveAge(age: Int!): [User]
-      rollDice(numDice: Int!, numSides: Int): [Int]
-      getMessages: [Message],
+      messages(limit: Int): [Message]
       newUser: User
     }
 
@@ -242,6 +241,7 @@ function graphQlSetup(){
     type User { # define the type
       name: String
       timestamp: Int
+      age: Int
     }
   `;
 
@@ -252,11 +252,20 @@ function graphQlSetup(){
     Query:{
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
-      getUsers: () => users,
+      Users: () => users,
       getUsersAboveAge: (result, {age}) => {
+        console.log("Age: "+ age);
+
         return users.filter(a => a.age > age)
       },
-      messages: () => {
+      messages: (result, {limit}) => {
+
+        if (!limit){
+          console.log("NoLimit: "+limit);
+          limit = 10;
+        } else{
+          console.log("Limit: "+limit);
+        }
 
         return new Promise( function(resolve, reject){
 
@@ -264,7 +273,7 @@ function graphQlSetup(){
 
           results = [];
 
-          let sql = `SELECT timestamp, body, userId FROM messages;`;
+          let sql = `SELECT timestamp, body, userId FROM messages ORDER by timestamp DESC LIMIT ${limit};`;
           // console.log("sql:" + sql);
           db.all(sql, [], (err, rows) => {
             if (err) {
@@ -279,7 +288,7 @@ function graphQlSetup(){
                 timestamp: row["timestamp"],
               });
 
-              console.log(row);
+              // console.log(row);
 
             });
 

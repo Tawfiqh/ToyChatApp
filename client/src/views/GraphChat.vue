@@ -10,7 +10,7 @@
 
     <ul id="message-container">
       <li v-for="(message, index) in messages" v-bind:key="index">
-        <span class="user-span"> {{message.sender}} </span> {{message.message}}
+        <span class="time-span"> {{message.timestamp.toTimeString().substr(0,8)}} </span> <span class="user-span"> {{message.sender}} </span> {{message.message}}
       </li>
     </ul>
   </div>
@@ -57,11 +57,13 @@ export default {
     async getRecentMessages(){
 
       const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
-      var body = { "query": "{ messages{ name }}" };
+      var body = {
+        "query": "query queryTest( $limit : Int ){ messages(limit: $limit){ body, sender, timestamp } }",
+        "variables":{"limit": 10}
+      }
       const { data } = await this.axios.post( endpoint, body );
 
-
-      return this._.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
+      return this._.get(data, "data.messages", [] );
 
     }
   },
@@ -74,16 +76,20 @@ export default {
 
 
     var messages = this.messages; //XXYZ - might be superfluous.
-    function addToRecord(data, sender){
-     messages.unshift({message:data, sender:sender}); //Add to beginning of array.
+    function addToRecord(data, sender, timestamp){
+     messages.unshift({message:data, sender:sender, timestamp:timestamp}); //Add to beginning of array.
     }
 
     this.getRecentMessages().then((res) => {
 
-      for(var i=0; i< res.length ;i++){
-        var sentBy = data.sender + "  : "
-        message = this._.get(res, '[i]["data"]["message"]');
-        addToRecord(message, sentBy);
+      for(var i = res.length -1; i>= 0 ;i--){
+        var sentBy = res[i].sender + "  : "
+        var message = this._.get(res, [i, "body"], null);
+        var timestamp = this._.get(res, [i, "timestamp"], "");
+        if (timestamp == null || message == null){
+          continue;
+        }
+        addToRecord(message, sentBy, new Date(timestamp));
       }
 
     });
@@ -97,7 +103,7 @@ export default {
 
   },
   beforeDestroy() {
-    this.socket.removeListener('newMessage');
+    // this.socket.removeListener('newMessage');
   }
 }
 
