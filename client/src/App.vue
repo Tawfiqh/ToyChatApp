@@ -3,7 +3,8 @@
     <div id="nav" v-bind:class='{ "flared-nav": devMode }'>
       <router-link to="/">👇</router-link> |
       <router-link to="/chat">chat</router-link> |
-      <router-link to="/graph-demo">📊</router-link>
+      <router-link to="/graph-demo">Gql</router-link> |
+      <router-link to="/graph-chat"> 📊 💬 </router-link>
     </div>
     <router-view/>
   </div>

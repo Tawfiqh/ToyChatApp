@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import Chat from './views/Chat.vue'
 import GraphDemo from './views/GraphDemo.vue'
+import GraphChat from './views/GraphChat.vue'
 
 Vue.use(Router)
 
@@ -21,6 +22,11 @@ export default new Router({
       path: '/graph-demo',
       name: 'graphDemo',
       component: GraphDemo
+    },
+    {
+      path: '/graph-chat',
+      name: 'graphChat',
+      component: GraphChat
     }
   ]
 })
