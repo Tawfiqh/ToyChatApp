@@ -32,7 +32,7 @@ export default {
   }),
   methods:{
     async submitForm(){
-      console.log("Submitting with:" + this.message);
+      // console.log("Submitting with:" + this.message);
 
       const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
       var body = {
@@ -53,32 +53,46 @@ export default {
 
       return this._.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
 
+    },
+    async getRecentMessages(){
+
+      const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
+      var body = { "query": "{ messages{ name }}" };
+      const { data } = await this.axios.post( endpoint, body );
+
+
+      return this._.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
+
     }
   },
   beforeMount() {
 
-   this.getNewId().then((res)=>{
+    this.getNewId().then((res)=>{
      this.myId = res;
-   });
+    });
 
-   this.socket = io(process.env.VUE_APP_BASE_URL);
 
-   var socket = this.socket;
 
-   socket.on('connect', function(data) {
-       socket.emit('join', 'Hello server from client');
-   });
+    var messages = this.messages; //XXYZ - might be superfluous.
+    function addToRecord(data, sender){
+     messages.unshift({message:data, sender:sender}); //Add to beginning of array.
+    }
 
-   var messages = this.messages; //XXYZ - might be superfluous.
-   function addToRecord(data, sender){
-     messages.unshift({message:data, sender:sender});
-   }
-     // listener for 'newMessage' event, which updates messages
-   socket.on('newMessage', function(data) {
-     var sentBy = data.sender + "  : "
-     addToRecord(data.message, sentBy);
+    this.getRecentMessages().then((res) => {
 
-   });
+      for(var i=0; i< res.length ;i++){
+        var sentBy = data.sender + "  : "
+        message = this._.get(res, '[i]["data"]["message"]');
+        addToRecord(message, sentBy);
+      }
+
+    });
+
+   // socket.on('newMessage', function(data) {
+   //   var sentBy = data.sender + "  : "
+   //   addToRecord(data.message, sentBy);
+   //
+   // });
 
 
   },

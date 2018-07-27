@@ -256,7 +256,7 @@ function graphQlSetup(){
       getUsersAboveAge: (result, {age}) => {
         return users.filter(a => a.age > age)
       },
-      getMessages: () => {
+      messages: () => {
 
         return new Promise( function(resolve, reject){
 
