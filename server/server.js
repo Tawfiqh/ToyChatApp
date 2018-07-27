@@ -222,7 +222,15 @@ function graphQlSetup(){
       rollDice(numDice: Int!, numSides: Int): [Int]
       getMessages: [Message],
       newUser: User
+    }
 
+    type Mutation {
+      sendMessage(message: MessageInput): Message
+    }
+
+    input MessageInput{
+      body: String
+      sender: String
     }
 
     type Message{
@@ -286,6 +294,33 @@ function graphQlSetup(){
       newUser: async () => {
         var name = await formatNewUserId();
         return new User(name, 99);
+      }
+    },
+    Mutation: {
+      sendMessage : (result, {message}) => {
+
+        console.log("Sender:" + JSON.stringify(message["sender"]));
+        console.log("Body:" + JSON.stringify(message["body"]));
+
+
+        db_start()
+        const insertData = `'${message["body"]}', '${message["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
+        let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
+
+        db.all(sql, [], (err, rows) => {
+          if (err) {
+            throw err;
+          }
+          rows.forEach((row) => {
+            console.log(row.name);
+          });
+        });
+
+        // close the database connection
+        db.close();
+
+        return { body: message["body"], sender: message["sender"] };
+
       }
     }
   };

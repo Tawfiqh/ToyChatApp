@@ -31,9 +31,16 @@ export default {
     queryResult: "?"
   }),
   methods:{
-    submitForm(){
+    async submitForm(){
       console.log("Submitting with:" + this.message);
-      // this.socket.emit('messages', {sender: this.myId, message: this.message});
+
+      const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
+      var body = {
+        "query": "mutation queryTest( $body: String, $sender: String ){ sendMessage(message:{body: $body, sender: $sender}){ timestamp } }",
+        "variables": { "body": this.message, "sender": this.myId}
+      }
+      const { data } = await this.axios.post( endpoint, body );
+
       this.message = "";
     },
     async getNewId(){
