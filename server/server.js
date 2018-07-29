@@ -1,11 +1,9 @@
 const { ApolloServer, gql } = require('apollo-server-koa');
+
 const Koa = require('koa');
 const { PubSub, withFilter } = require('graphql-subscriptions');
-const { execute, subscribe } = require('graphql');
-const { createServer } = require('http');
-const { SubscriptionServer } = require('subscriptions-transport-ws');
+const { SubscriptionClient, addGraphQLSubscriptions } = require('subscriptions-transport-ws');
 
-const { graphqlExpress, graphiqlExpress, } = require('graphql-server-express');
 
 const serve = require('koa-static');
 const _ = require('lodash');
@@ -17,7 +15,7 @@ const sqlite3 = require('sqlite3');
 const randomEmoji = require('./random-emoji')
 const randomWords = require('./random-words/random-words')
 
-
+const pubsub = new PubSub();
 const app = new Koa();
 
 class User {
@@ -130,8 +128,6 @@ const schema = gql`
     messageAdded(channelId: ID!): Message
   }
 `;
-
-const pubsub = new PubSub();
 
 
 // Resolvers define the technique for fetching the types in the
@@ -248,6 +244,7 @@ const resolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator('messageAdded'),
         (payload, variables) => {
+          console.log("tawfiq iscool");
           return payload.channelId === variables.channelId;
         }
       )
@@ -255,39 +252,52 @@ const resolvers = {
   }
 };
 
-var port = 4000;
-var server = app.listen({ port: port }, () => {
-  console.log(`Server ready at localhost:${port}`);
-});
-
 const apolloserver =  new ApolloServer(
  {
    typeDefs: schema,
    resolvers,
-   formatError: (err) => { console.log(err); return err }
+   formatError: (err) => { console.log(err); return err },
+   context: ({ ctx }) => ctx,
+   subscriptions: {
+    onConnect: (connectionParams, webSocket) => {
+      // if (connectionParams.authToken) {
+      //   return validateToken(connectionParams.authToken)
+      //     .then(findUser(connectionParams.authToken))
+      //     .then(user => {
+      //       return {
+      //         currentUser: user,
+      //       };
+      //     });
+      // }
+      //
+      // throw new Error('Missing auth token!');
+    },
+   },
  }
 );
+var port = 4000;
+
+var server = app.listen({ port: port }, () => {
+  console.log(`Server ready at localhost:${port}`);
+});
+
+
+
 
 apolloserver.applyMiddleware({ app, path:'/graphql' });
 
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// Wrap the Express server
-const ws = createServer(server);
-var wsPath = "graphxx";
-ws.listen(5000, () => {
-  console.log(`GraphQL Server is now running on http://localhost:${port}/${wsPath}`);
-  // Set up the WebSocket for handling GraphQL subscriptions
-  new SubscriptionServer({
-    execute,
-    subscribe,
-    schema
-  }, {
-    server: ws,
-    path: '/subscriptions',
-  });
-});
+const http = require('http');
+const PORT = port + 1000;
 
+const httpServer = http.createServer(app.callback());
+apolloserver.installSubscriptionHandlers(httpServer);
+
+// We are calling `listen` on the http server variable, and not on `app`.
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
+  console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
+})
 
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -307,12 +317,21 @@ function db_start(){
 };
 
 setupDb();
-// setupLogging();
-// enableCors();
+setupLogging();
+enableCors();
 setupOtherEndpoints();
 // graphQlSetup();
-//
-//
+
+
+
+
+
+
+
+
+
+
+
 // Needs to happen after starting the server (I think)
 const io = new socket(server)
 var recentMessages =[];
@@ -321,18 +340,18 @@ setupIoChatServer();
 
 
 
-// // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// // Setup Functions
-// // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//
-// function enableCors(){
-//   app.use(async (ctx, next) => {
-//     ctx.set('Access-Control-Allow-Origin', "http://localhost:8080");
-//     ctx.set('Access-Control-Allow-Credentials', 'true');
-//     await next();
-//   });
-// }
-//
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Setup Functions
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+function enableCors(){
+  app.use(async (ctx, next) => {
+    ctx.set('Access-Control-Allow-Origin', "http://localhost:8080");
+    ctx.set('Access-Control-Allow-Credentials', 'true');
+    await next();
+  });
+}
+
 function setupOtherEndpoints(){
 
   router.get('/hi', (ctx, next) => {
@@ -361,40 +380,40 @@ function setupOtherEndpoints(){
 
 
 }
-//
-//
-//
-// // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// // Logging
-// // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//
-// function setupLogging(){
-//   //Init request
-//   // x-response-time
-//   // app.use(async (ctx, next) => {
-//   //   const start = Date.now();
-//   //   await next();
-//   //   const ms = Date.now() - start;
-//   //   ctx.set('X-Response-Time', `${ms}ms`);
-//   // });
-//   // logger
-//   app.use(async (ctx, next) => {
-//     console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
-//     console.log(`>>>${ctx.method} ${ctx.url} start ⏰ \n`);
-//     const start = Date.now();
-//     await next();
-//     const ms = Date.now() - start;
-//     console.log(`\n>>> ${ctx.method} ${ctx.url} --- TimeTaken:${ms}`);
-//     console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
-//   });
-//
-// }
-//
-//
-//
-//
-//
-//
+
+
+
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Logging
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+function setupLogging(){
+  //Init request
+  // x-response-time
+  // app.use(async (ctx, next) => {
+  //   const start = Date.now();
+  //   await next();
+  //   const ms = Date.now() - start;
+  //   ctx.set('X-Response-Time', `${ms}ms`);
+  // });
+  // logger
+  app.use(async (ctx, next) => {
+    console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
+    console.log(`>>>${ctx.method} ${ctx.url} start ⏰ \n`);
+    const start = Date.now();
+    await next();
+    const ms = Date.now() - start;
+    console.log(`\n>>> ${ctx.method} ${ctx.url} --- TimeTaken:${ms}`);
+    console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
+  });
+
+}
+
+
+
+
+
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Chat
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -622,15 +641,6 @@ function calculateServerStatus(){
 //   };
 //
 //
-//   const apolloserver =  new ApolloServer(
-//    {
-//      typeDefs: schema,
-//      resolvers,
-//      formatError: (err) => { console.log(err); return err }
-//    }
-//   );
-//
-//   apolloserver.applyMiddleware({ app, path:'/graph' });
 //
 // };
 //
