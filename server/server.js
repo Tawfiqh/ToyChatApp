@@ -1,3 +1,24 @@
+const { ApolloServer, gql } = require('apollo-server-koa');
+const Koa = require('koa');
+const { PubSub, withFilter } = require('graphql-subscriptions');
+const { execute, subscribe } = require('graphql');
+const { createServer } = require('http');
+const { SubscriptionServer } = require('subscriptions-transport-ws');
+
+const { graphqlExpress, graphiqlExpress, } = require('graphql-server-express');
+
+const serve = require('koa-static');
+const _ = require('lodash');
+
+const Router = require('koa-router');
+const socket = require('socket.io');
+const sqlite3 = require('sqlite3');
+
+const randomEmoji = require('./random-emoji')
+const randomWords = require('./random-words/random-words')
+
+
+const app = new Koa();
 
 class User {
   constructor(name,age) {
@@ -15,6 +36,7 @@ var users = [
 var messages = [];
 
 var chats = [];
+
 const channels = [{
   id: '1',
   name: 'soccer',
@@ -24,6 +46,10 @@ const channels = [{
   }, {
     id: '2',
     text: 'hello soccer world cup',
+  },
+ {
+    id: '3',
+    text: 'Tawfiq here',
   }]
 }, {
   id: '2',
@@ -35,16 +61,28 @@ const channels = [{
     id: '4',
     text: 'hello baseball world series',
   }]
+},
+{
+  id: '3',
+  name: "tawfiq test",
+  messages:[
+    {
+      id: '1',
+      text: 'hello baseball world series'
+    }
+  ]
+
 }];
 let nextId = 3;
 let nextMessageId = 5;
+
 const schema = gql`
   type Query { # define the query
     hello: String # define the fields
     byeBye: String
     Users: [User]
     getUsersAboveAge(age: Int!): [User]
-    messages(limit: Int): [Message]
+    messages(limit: Int): [Messagex]
     newUser: User
     channels: [Channel]    # "[]" means this is a list of channels
     channel(id: ID!): Channel
@@ -66,17 +104,17 @@ const schema = gql`
   }
 
   type Mutation {
-    sendMessage(message: MessageInput): Message
+    sendMessage(message: MessageInputx): Messagex
     addChannel(name: String!): Channel
     addMessage(message: MessageInput!): Message
   }
 
-  input MessageInput{
+  input MessageInputx{
     body: String
     sender: String
   }
 
-  type Message{
+  type Messagex{
     timestamp: String
     body: String
     sender: String
@@ -87,7 +125,13 @@ const schema = gql`
     timestamp: Int
     age: Int
   }
+
+  type Subscription {
+    messageAdded(channelId: ID!): Message
+  }
 `;
+
+const pubsub = new PubSub();
 
 
 // Resolvers define the technique for fetching the types in the
@@ -147,7 +191,13 @@ const resolvers = {
     newUser: async () => {
       var name = await formatNewUserId();
       return new User(name, 99);
-    }
+    },
+    channels: () => {
+      return channels;
+    },
+    channel: (root, { id }) => {
+      return channels.find(channel => channel.id === id);
+    },
   },
   Mutation: {
     sendMessage : (result, {message}) => {
@@ -174,10 +224,41 @@ const resolvers = {
 
       return { body: message["body"], sender: message["sender"] };
 
+    },
+    addChannel: (root, args) => {
+      const newChannel = { id: String(nextId++), messages: [], name: args.name };
+      channels.push(newChannel);
+      return newChannel;
+    },
+    addMessage: (root, { message }) => {
+      const channel = channels.find(channel => channel.id === message.channelId);
+      if(!channel)
+        throw new Error("Channel does not exist");
+
+      const newMessage = { id: String(nextMessageId++), text: message.text };
+      channel.messages.push(newMessage);
+
+      pubsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
+
+      return newMessage;
+    },
+  },
+  Subscription: {
+    messageAdded: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator('messageAdded'),
+        (payload, variables) => {
+          return payload.channelId === variables.channelId;
+        }
+      )
     }
   }
 };
 
+var port = 4000;
+var server = app.listen({ port: port }, () => {
+  console.log(`Server ready at localhost:${port}`);
+});
 
 const apolloserver =  new ApolloServer(
  {
@@ -187,7 +268,29 @@ const apolloserver =  new ApolloServer(
  }
 );
 
-apolloserver.applyMiddleware({ app, path:'/graph' });
+apolloserver.applyMiddleware({ app, path:'/graphql' });
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// Wrap the Express server
+const ws = createServer(server);
+var wsPath = "graphxx";
+ws.listen(5000, () => {
+  console.log(`GraphQL Server is now running on http://localhost:${port}/${wsPath}`);
+  // Set up the WebSocket for handling GraphQL subscriptions
+  new SubscriptionServer({
+    execute,
+    subscribe,
+    schema
+  }, {
+    server: ws,
+    path: '/subscriptions',
+  });
+});
+
+
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 
 
@@ -195,50 +298,29 @@ apolloserver.applyMiddleware({ app, path:'/graph' });
 
 
 
+router = new Router();
 
+var db = null;
 
+function db_start(){
+  db = new sqlite3.Database('chatDatabase.sqlite3');
+};
 
-
-
-// const serve = require('koa-static');
-// const _ = require('lodash');
-// const Koa = require('koa');
-// const Router = require('koa-router');
-// const socket = require('socket.io');
-// const { ApolloServer, gql } = require('apollo-server-koa');
-// const sqlite3 = require('sqlite3');
-//
-// const randomEmoji = require('./random-emoji')
-// const randomWords = require('./random-words/random-words')
-//
-// router = new Router();
-// const app = new Koa();
-//
-// var db = null;
-//
-// function db_start(){
-//   db = new sqlite3.Database('chatDatabase.sqlite3');
-// };
-//
-// setupDb();
+setupDb();
 // setupLogging();
 // enableCors();
-// setupOtherEndpoints();
+setupOtherEndpoints();
 // graphQlSetup();
 //
-// var server = app.listen({ port: 3000 }, (url) => {
-//   console.log(`Server ready at :3000`);
-// });
 //
-// // Needs to happen after starting the server (I think)
-// const io = new socket(server)
-// var recentMessages =[];
-// setupIoChatServer();
-//
-//
-//
-//
-//
+// Needs to happen after starting the server (I think)
+const io = new socket(server)
+var recentMessages =[];
+setupIoChatServer();
+
+
+
+
 // // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // // Setup Functions
 // // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -251,31 +333,34 @@ apolloserver.applyMiddleware({ app, path:'/graph' });
 //   });
 // }
 //
-// function setupOtherEndpoints(){
-//
-//   router.get('/hi', (ctx, next) => {
-//     ctx.body = 'Hello World!';
-//   });
-//
-//   router.get('/emoji', (ctx, next) => {
-//    ctx.body = randomEmoji();
-//   });
-//
-//   router.get('/status', (ctx, next) => {
-//     ctx.body = calculateServerStatus();
-//   });
-//
-//   router.get('/new-user-id', async (ctx, next) => {
-//     ctx.body = await formatNewUserId();
-//   });
-//
-//   app.use(router.routes()).use(router.allowedMethods());
-//
-//   router.redirect('/chat', '/chat.html');
-//   app.use(serve('./public'));
-//   app.use(serve('./basic-client'));
-//
-// }
+function setupOtherEndpoints(){
+
+  router.get('/hi', (ctx, next) => {
+    ctx.body = 'Hello World!';
+  });
+
+  router.get('/emoji', (ctx, next) => {
+   ctx.body = randomEmoji();
+  });
+
+  router.get('/status', (ctx, next) => {
+    ctx.body = calculateServerStatus();
+  });
+
+  router.get('/new-user-id', async (ctx, next) => {
+    ctx.body = await formatNewUserId();
+  });
+
+
+  app.use(router.routes()).use(router.allowedMethods());
+
+  router.redirect('/chat', '/chat.html');
+  app.use(serve('./public'));
+  app.use(serve('./basic-client'));
+
+
+
+}
 //
 //
 //
@@ -310,87 +395,87 @@ apolloserver.applyMiddleware({ app, path:'/graph' });
 //
 //
 //
-// // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// // Chat
-// // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//
-//
-// function setupIoChatServer(){
-//   var recentMessagesBufferSize = 10;
-//   io.on('connection', function(socket){
-//     console.log('a user connected')
-//
-//     socket.on('join', function(data) {
-//   		console.log(data);
-//       recentMessages.forEach((x) => {
-//           socket.emit('newMessage', x); //Only sends to sender
-//         }
-//       );
-//   	});
-//
-//     socket.on('messages', function(data){
-//       console.log("Recieved: " + JSON.stringify(data))
-//       recentMessages.push(data);
-//
-//       db_start()
-//       const insertData = `'${data["message"]}', '${data["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
-//
-//       let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
-//       console.log("sql:" + sql);
-//       db.all(sql, [], (err, rows) => {
-//         if (err) {
-//           throw err;
-//         }
-//         rows.forEach((row) => {
-//           console.log(row.name);
-//         });
-//       });
-//
-//       // close the database connection
-//       db.close();
-//
-//       if (recentMessages.length > recentMessagesBufferSize){
-//         recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
-//       }
-//
-//       io.sockets.emit('newMessage', data); //Sends to everyone
-//       // socket.emit('newMessage', data); //Only sends to sender
-//   		// socket.broadcast.emit('newMessage', data); // sends to everyone apart from sender.
-//   	});
-//   })
-// }
-//
-// async function formatNewUserId(){
-//   var newId = await randomWords();
-//   newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
-//   newId = randomEmoji() + newId + randomEmoji() ;
-//   console.log("newId:" + newId);
-//
-//   return newId;
-//
-// }
-//
-//
-// function calculateServerStatus(){
-//   var clients = [];
-//
-//   for(var client in io.engine.clients){
-//
-//     var clientToAdd = _.pick(io.engine.clients[client],["id", "readyState", "remoteAddress"] )
-//     clients.push(clientToAdd);
-//
-//   }
-//
-//   var result = {
-//     peopleConnected: io.engine.clientsCount,
-//     clients: clients,
-//     messageBuffer: recentMessages,
-//   };
-//
-//   var prettyResult = JSON.stringify(result, null, 2);
-//   return prettyResult;
-// }
-//
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Chat
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+function setupIoChatServer(){
+  var recentMessagesBufferSize = 10;
+  io.on('connection', function(socket){
+    console.log('a user connected')
+
+    socket.on('join', function(data) {
+  		console.log(data);
+      recentMessages.forEach((x) => {
+          socket.emit('newMessage', x); //Only sends to sender
+        }
+      );
+  	});
+
+    socket.on('messages', function(data){
+      console.log("Recieved: " + JSON.stringify(data))
+      recentMessages.push(data);
+
+      db_start()
+      const insertData = `'${data["message"]}', '${data["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
+
+      let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
+      console.log("sql:" + sql);
+      db.all(sql, [], (err, rows) => {
+        if (err) {
+          throw err;
+        }
+        rows.forEach((row) => {
+          console.log(row.name);
+        });
+      });
+
+      // close the database connection
+      db.close();
+
+      if (recentMessages.length > recentMessagesBufferSize){
+        recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
+      }
+
+      io.sockets.emit('newMessage', data); //Sends to everyone
+      // socket.emit('newMessage', data); //Only sends to sender
+  		// socket.broadcast.emit('newMessage', data); // sends to everyone apart from sender.
+  	});
+  })
+}
+
+async function formatNewUserId(){
+  var newId = await randomWords();
+  newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
+  newId = randomEmoji() + newId + randomEmoji() ;
+  console.log("newId:" + newId);
+
+  return newId;
+
+}
+
+
+function calculateServerStatus(){
+  var clients = [];
+
+  for(var client in io.engine.clients){
+
+    var clientToAdd = _.pick(io.engine.clients[client],["id", "readyState", "remoteAddress"] )
+    clients.push(clientToAdd);
+
+  }
+
+  var result = {
+    peopleConnected: io.engine.clientsCount,
+    clients: clients,
+    messageBuffer: recentMessages,
+  };
+
+  var prettyResult = JSON.stringify(result, null, 2);
+  return prettyResult;
+}
+
 // // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // // Graph QL - Setup.
 // // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -550,15 +635,15 @@ apolloserver.applyMiddleware({ app, path:'/graph' });
 // };
 //
 //
-// function setupDb(){
-//   db_start();
-//
-//   db.serialize(function() {
-//     db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId TEXT, timestamp TEXT)");
-//     db.run("CREATE TABLE IF NOT EXISTS users (userId TEXT, sender Int, timestamp TEXT)");
-//     // db.run("CREATE TABLE IF NOT EXISTS chats (userId TEXT, sender Int, timestamp DATETIME(6))");
-//   });
-//
-//   db.close();
-//
-// }
+function setupDb(){
+  db_start();
+
+  db.serialize(function() {
+    db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId TEXT, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS users (userId TEXT, sender Int, timestamp TEXT)");
+    // db.run("CREATE TABLE IF NOT EXISTS chats (userId TEXT, sender Int, timestamp DATETIME(6))");
+  });
+
+  db.close();
+
+}
