@@ -34,7 +34,7 @@ export default {
     async submitForm(){
       // console.log("Submitting with:" + this.message);
 
-      const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
+      const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
       var body = {
         "query": "mutation queryTest( $body: String, $sender: String ){ sendMessage(message:{body: $body, sender: $sender}){ timestamp } }",
         "variables": { "body": this.message, "sender": this.myId}
@@ -46,7 +46,7 @@ export default {
     async getNewId(){
       // return "⛱ folk_theater🇲🇦 "
 
-      const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
+      const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
       var body = { "query": "{newUser{ name }}" };
       const { data } = await this.axios.post( endpoint, body );
 
@@ -56,7 +56,7 @@ export default {
     },
     async getRecentMessages(){
 
-      const endpoint = `${process.env.VUE_APP_BASE_URL}graph`;
+      const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
       var body = {
         "query": "query queryTest( $limit : Int ){ messages(limit: $limit){ body, sender, timestamp } }",
         "variables":{"limit": 10}
@@ -94,16 +94,16 @@ export default {
 
     });
 
-   // socket.on('newMessage', function(data) {
-   //   var sentBy = data.sender + "  : "
-   //   addToRecord(data.message, sentBy);
-   //
-   // });
+   socket.on('newMessage', function(data) {
+     var sentBy = data.sender + "  : "
+     addToRecord(data.message, sentBy);
+
+   });
 
 
   },
   beforeDestroy() {
-    // this.socket.removeListener('newMessage');
+    this.socket.removeListener('newMessage');
   }
 }
 
