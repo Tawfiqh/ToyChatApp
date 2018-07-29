@@ -183,23 +183,6 @@ function setupIoChatServer(){
       console.log("Recieved: " + JSON.stringify(data))
       // recentMessages.push(data);
 
-      // db_start()
-      // const insertData = `'${data["message"]}', '${data["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
-      //
-      // let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
-      // console.log("sql:" + sql);
-      // db.all(sql, [], (err, rows) => {
-      //   if (err) {
-      //     throw err;
-      //   }
-      //   rows.forEach((row) => {
-      //     console.log(row.name);
-      //   });
-      // });
-      //
-      // // close the database connection
-      // db.close();
-
       if (recentMessages.length > recentMessagesBufferSize){
         recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
       }
@@ -407,6 +390,13 @@ function graphQlSetup(){
               reject(err);
             }
 
+            if(rows.length == 0){
+
+              resolve(results);
+              return;
+
+            }
+
             rows.forEach((row) => {
               results.push({
                 body: row["body"],
@@ -456,6 +446,7 @@ function graphQlSetup(){
             console.error("FAILED TO WRITE TO DB");
             return;
           }
+          if(rows.length == 0) return;
 
           rows.forEach((row) => {
             console.log(row);
@@ -470,39 +461,77 @@ function graphQlSetup(){
         return { body: message["body"], sender: message["sender"] };
 
       },
-      addUser : (result, {user}) => {
+      addUser : async (result, {userName}) => {
 
-
-        console.log("User:" + JSON.stringify(user) );
-
-        // ============================== Put user into database. ==============================
-
-
+        console.log("User:" + JSON.stringify(userName) );
 
 
         db_start()
 
-        db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $message, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
-         {
-           "$body":message["body"],
-           "$message":message["sender"],
-          }, (err, rows) => {
-          if (err) {
-            console.error("FAILED TO WRITE TO DB");
-            return;
-          }
+        var selectFromDb = new Promise( function(resolve, reject){
 
-          rows.forEach((row) => {
-            console.log(row);
+          db.all(`select userId, nickname ,timestamp from users where nickname = $nickname LIMIT 1`,
+           {
+             "$nickname":userName
+            }, (err, rows) => {
+            if (err) {
+              console.error("FAILED TO WRITE TO DB");
+              return;
+            }
+
+            if(rows.length == 0){
+              resolve(null);
+              return;
+            }
+
+            resolve(rows[0]);
+            return;
+
+          });
+
+          // close the database connection
+          db.close();
+
+        });
+
+        var selectResult = await selectFromDb;
+
+        if (selectResult != null){
+
+          return { name:selectResult["nickname"], timestamp: selectResult["timestamp"], id: selectResult["userId"]};
+        }
+
+
+        // ============================== Put user into database. ==============================
+        db_start()
+
+        var insertResult = new Promise( function(resolve, reject){
+          db.run(`INSERT INTO users( nickname ,timestamp) VALUES ($nickname, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
+           {
+             "$nickname":userName
+           }, function(err){
+            if (err) {
+              console.error("FAILED TO WRITE TO DB");
+              resolve(null);
+              return;
+            }
+            resolve(this.lastID);
+
+
           });
         });
 
         // close the database connection
         db.close();
 
-        io.sockets.emit('newMessage', {body: message["body"], sender: message["sender"], timestamp: new Date()}); //Sends to everyone
 
-        return { body: message["body"], sender: message["sender"] };
+        var insertId = await insertResult;
+
+        if (insertId == null){
+          return { };
+        }
+
+        return { name:userName, timestamp: new Date(), id: insertId};
 
       },
       addChannel: (root, args) => {
@@ -517,8 +546,6 @@ function graphQlSetup(){
 
         const newMessage = { id: String(nextMessageId++), text: message.text };
         channel.messages.push(newMessage);
-
-        console.log("pblishing the good news");
 
         pubsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
 
@@ -585,7 +612,7 @@ function setupDb(){
 
   db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId INTEGER, timestamp TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS users (userId INTEGER, nickname TEXT, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS users (userId INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT, timestamp TEXT)");
     // db.run("CREATE TABLE IF NOT EXISTS chats (userId TEXT, sender Int, timestamp DATETIME(6))");
   });
 
