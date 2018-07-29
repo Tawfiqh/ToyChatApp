@@ -20,7 +20,6 @@
 <script>
 import io from 'socket.io-client';
 
-
 export default {
   name: 'GraphChat',
   data: () => ({
@@ -28,7 +27,8 @@ export default {
     messages: [],
     message: "",
     query: "{?}",
-    queryResult: "?"
+    queryResult: "?",
+    socket: null
   }),
   methods:{
     async submitForm(){
@@ -74,29 +74,36 @@ export default {
     });
 
 
-
     var messages = this.messages; //XXYZ - might be superfluous.
     function addToRecord(data, sender, timestamp){
-     messages.unshift({message:data, sender:sender, timestamp:timestamp}); //Add to beginning of array.
+      var sentBy = sender + "  : "
+      messages.unshift({message:data, sender:sentBy, timestamp:new Date(timestamp)}); //Add to beginning of array.
     }
+
+    this.socket = io(process.env.VUE_APP_BASE_URL);
+
+    var socket = this.socket;
+
+    socket.on('connect', function(data) {
+       socket.emit('join', 'Hello server from client');
+    });
 
     this.getRecentMessages().then((res) => {
 
       for(var i = res.length -1; i>= 0 ;i--){
-        var sentBy = res[i].sender + "  : "
         var message = this._.get(res, [i, "body"], null);
         var timestamp = this._.get(res, [i, "timestamp"], "");
         if (timestamp == null || message == null){
           continue;
         }
-        addToRecord(message, sentBy, new Date(timestamp));
+        addToRecord(message, res[i].sender, timestamp);
       }
 
     });
 
    socket.on('newMessage', function(data) {
-     var sentBy = data.sender + "  : "
-     addToRecord(data.message, sentBy);
+
+     addToRecord(data.body, data.sender, data.timestamp);
 
    });
 

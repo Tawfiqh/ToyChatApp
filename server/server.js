@@ -181,24 +181,24 @@ function setupIoChatServer(){
 
     socket.on('messages', function(data){
       console.log("Recieved: " + JSON.stringify(data))
-      recentMessages.push(data);
+      // recentMessages.push(data);
 
-      db_start()
-      const insertData = `'${data["message"]}', '${data["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
-
-      let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
-      console.log("sql:" + sql);
-      db.all(sql, [], (err, rows) => {
-        if (err) {
-          throw err;
-        }
-        rows.forEach((row) => {
-          console.log(row.name);
-        });
-      });
-
-      // close the database connection
-      db.close();
+      // db_start()
+      // const insertData = `'${data["message"]}', '${data["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
+      //
+      // let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
+      // console.log("sql:" + sql);
+      // db.all(sql, [], (err, rows) => {
+      //   if (err) {
+      //     throw err;
+      //   }
+      //   rows.forEach((row) => {
+      //     console.log(row.name);
+      //   });
+      // });
+      //
+      // // close the database connection
+      // db.close();
 
       if (recentMessages.length > recentMessagesBufferSize){
         recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
@@ -208,6 +208,8 @@ function setupIoChatServer(){
       // socket.emit('newMessage', data); //Only sends to sender
   		// socket.broadcast.emit('newMessage', data); // sends to everyone apart from sender.
   	});
+
+
   })
 }
 
@@ -297,6 +299,7 @@ function graphQlSetup(){
 
     type Mutation {
       sendMessage(message: MessageInputx): Messagex
+      addUser(userName: String):User
       addChannel(name: String!): Channel
       addMessage(message: MessageInput!): Message
     }
@@ -314,8 +317,8 @@ function graphQlSetup(){
 
     type User { # define the type
       name: String
-      timestamp: Int
-      age: Int
+      timestamp: String
+      id: Int
     }
 
     type Subscription {
@@ -330,7 +333,52 @@ function graphQlSetup(){
     Query:{
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
-      Users: () => users,
+      Users: () => async (result, {limit}) => {
+
+        if (!limit){
+          console.log("NoLimit: "+limit);
+          limit = 100;
+        } else{
+          console.log("Limit: "+limit);
+        }
+
+        return new Promise( function(resolve, reject){
+
+          db_start();
+
+          results = [];
+
+
+
+          db.all("SELECT userId, nickname, timestamp FROM members ORDER by timestamp DESC LIMIT $limit;",
+          {"limit":limit},
+          (err, rows) => {
+            if (err) {
+              console.log("naaaah");
+              reject(err);
+            }
+
+            if(rows.length == 0) return;
+
+            rows.forEach((row) => {
+              results.push({
+                name: row["nickname"],
+                id: row["userId"],
+                timestamp: row["timestamp"],
+              });
+
+              // console.log(row);
+
+            });
+
+            resolve(results);
+          });
+
+          // close the database connection
+          db.close();
+        });
+
+      },
       getUsersAboveAge: (result, {age}) => {
         console.log("Age: "+ age);
 
@@ -395,22 +443,64 @@ function graphQlSetup(){
         console.log("Sender:" + JSON.stringify(message["sender"]));
         console.log("Body:" + JSON.stringify(message["body"]));
 
+        // ============================== Put user into database. ==============================
 
         db_start()
-        const insertData = `'${message["body"]}', '${message["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
-        let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
 
-        db.all(sql, [], (err, rows) => {
+        db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $message, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
+         {
+           "$body":message["body"],
+           "$message":message["sender"],
+          }, (err, rows) => {
           if (err) {
-            throw err;
+            console.error("FAILED TO WRITE TO DB");
+            return;
           }
+
           rows.forEach((row) => {
-            console.log(row.name);
+            console.log(row);
           });
         });
 
         // close the database connection
         db.close();
+
+        io.sockets.emit('newMessage', {body: message["body"], sender: message["sender"], timestamp: new Date()}); //Sends to everyone
+
+        return { body: message["body"], sender: message["sender"] };
+
+      },
+      addUser : (result, {user}) => {
+
+
+        console.log("User:" + JSON.stringify(user) );
+
+        // ============================== Put user into database. ==============================
+
+
+
+
+        db_start()
+
+        db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $message, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
+         {
+           "$body":message["body"],
+           "$message":message["sender"],
+          }, (err, rows) => {
+          if (err) {
+            console.error("FAILED TO WRITE TO DB");
+            return;
+          }
+
+          rows.forEach((row) => {
+            console.log(row);
+          });
+        });
+
+        // close the database connection
+        db.close();
+
+        io.sockets.emit('newMessage', {body: message["body"], sender: message["sender"], timestamp: new Date()}); //Sends to everyone
 
         return { body: message["body"], sender: message["sender"] };
 
@@ -494,8 +584,8 @@ function setupDb(){
   db_start();
 
   db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId TEXT, timestamp TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS users (userId TEXT, sender Int, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId INTEGER, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS users (userId INTEGER, nickname TEXT, timestamp TEXT)");
     // db.run("CREATE TABLE IF NOT EXISTS chats (userId TEXT, sender Int, timestamp DATETIME(6))");
   });
 
