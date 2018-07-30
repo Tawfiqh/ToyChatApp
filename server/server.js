@@ -414,13 +414,13 @@ function graphQlSetup(){
             console.log(row);
           });
         });
-
+        
         // close the database connection
         db.close();
+        var result  = {body: message["body"], sender:insertResult, timestamp: new Date()};
+        io.sockets.emit('newMessage', result); //Sends to everyone
 
-        io.sockets.emit('newMessage', {body: message["body"], sender: message["sender"], timestamp: new Date()}); //Sends to everyone
-
-        return { body: message["body"], sender: message["sender"] };
+        return result;
 
       },
       addUser: async (result, {userName}) => {

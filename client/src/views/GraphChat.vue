@@ -21,8 +21,8 @@
 
       <div class="col-2">
 
-        <h4> {{ query }} </h4>
-        <h3> {{ queryResult }} </h3>
+        <h4 class="code"> {{ query }} </h4>
+        <p class="code"> {{ queryResult }} </p>
 
       </div>
     </div>
@@ -51,12 +51,12 @@ export default {
 
       const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
       var body = {
-        "query": "mutation queryTest( $body: String, $sender: String ){ sendMessage(message:{body: $body, sender: $sender}){ timestamp } }",
+        "query": "mutation queryTest( $body: String, $sender: String ){ sendMessage(message:{body: $body, sender: $sender}){ body timestamp sender{ name id timestamp } } }",
         "variables": { "body": this.message, "sender": this.myId}
       }
       const { data } = await this.axios.post( endpoint, body );
-      this.query = JSON.stringify(body);
-      this.queryResult = JSON.stringify(data);
+      this.query = JSON.stringify(body,null,2);
+      this.queryResult = JSON.stringify(data,null,2);
 
       this.message = "";
     },
@@ -67,8 +67,8 @@ export default {
       var body = { "query": "{newUser{ name }}" };
       const { data } = await this.axios.post( endpoint, body );
 
-      this.query = JSON.stringify(body);
-      this.queryResult = JSON.stringify(data);
+      // this.query = JSON.stringify(body,null,2);
+      // this.queryResult = JSON.stringify(data,null,2);
 
       return this._.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
 
@@ -81,8 +81,8 @@ export default {
         "variables":{"limit": 10}
       }
       const { data } = await this.axios.post( endpoint, body );
-      this.query = JSON.stringify(body);
-      this.queryResult = JSON.stringify(data);
+      this.query = JSON.stringify(body,null,2);
+      this.queryResult = JSON.stringify(data,null,2);
 
       return this._.get(data, "data.messages", [] );
 
@@ -125,7 +125,7 @@ export default {
 
    socket.on('newMessage', function(data) {
 
-     addToRecord(data.body, data.sender, data.timestamp);
+     addToRecord(data.body, data.sender.name, data.timestamp);
 
    });
 
@@ -147,6 +147,7 @@ export default {
 
   .col-2{
     flex-basis: 30%;
+    max-width: 30%;
   }
 
   .row{
@@ -158,7 +159,16 @@ export default {
       flex-direction: column-reverse;
     }
 
+  }
 
+  .code{
+    text-align: left;
+    font-family: monospace;
+    white-space: pre;
+  }
+
+  h4.code{
+    white-space: normal;
   }
 
 </style>
