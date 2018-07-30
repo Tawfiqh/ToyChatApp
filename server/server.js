@@ -392,12 +392,6 @@ function graphQlSetup(){
         var name = await formatNewUserId();
         return new User(name, 99);
       },
-      // channels: () => {
-      //   return channels;
-      // },
-      // channel: (root, { id }) => {
-      //   return channels.find(channel => channel.id === id);
-      // },
     },
     Mutation: {
       sendMessage: async (result, {message}) => {
@@ -429,10 +423,10 @@ function graphQlSetup(){
         // close the database connection
         db.close();
         var result  = {body: message["body"], sender:insertResult, timestamp: new Date()};
-        // io.sockets.emit('newMessage', result); //Sends to everyone
+        io.sockets.emit('newMessage', result); //Sends to everyone
 
         console.log("PUBSUB!!");
-        pubsub.publish('messageAdded', {messageAdded: result});
+        // pubsub.publish('messageAdded', {messageAdded: result});
 
         return result;
 
@@ -443,23 +437,6 @@ function graphQlSetup(){
         return insertResult;
 
       },
-      // addChannel: (root, args) => {
-      //   const newChannel = { id: String(nextId++), messages: [], name: args.name };
-      //   channels.push(newChannel);
-      //   return newChannel;
-      // },
-      // addMessage: (root, { message }) => {
-      //   const channel = channels.find(channel => channel.id === message.channelId);
-      //   if(!channel)
-      //     throw new Error("Channel does not exist");
-      //
-      //   const newMessage = { id: String(nextMessageId++), text: message.text };
-      //   channel.messages.push(newMessage);
-      //
-      //   pubxsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
-      //
-      //   return newMessage;
-      // },
     },
     Subscription: {
       messageAdded: {
@@ -474,9 +451,9 @@ function graphQlSetup(){
      resolvers,
      formatError: (err) => { console.log(err); return err },
      context: ({ ctx }) => ctx,
-     subscriptions: {
-      path:"/wsGraph",
-     },
+     // subscriptions: {
+     //  path:"/wsGraph",
+     // },
    }
   );
 
@@ -485,19 +462,33 @@ function graphQlSetup(){
 
 
   // Subscription listener for
-  const http = require('http');
-  const PORT = port + 1000;
-
-  const httpServer = http.createServer(app.callback());
-  apolloserver.installSubscriptionHandlers(httpServer);
+  // const http = require('http');
+  // const PORT = port + 1000;
+  //
+  // const WebSocket = require('ws');
+  //
+  // const wss = new WebSocket.Server({ port: 5000 });
+  //
+  // wss.on('connection', function connection(ws) {
+  //
+  //   ws.on('message', function incoming(message) {
+  //     console.log('received: %s', message);
+  //   });
+  //
+  //   ws.send('something');
+  // });
+  //
+  //
+  // // const httpServer = http.createServer(app.callback());
+  // apolloserver.installSubscriptionHandlers(wss);
 
   const pubsub = new PubSub();
 
   // We are calling `listen` on the http server variable, and not on `app`.
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
-    console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
-  });
+  // httpServer.listen(PORT, () => {
+  //   console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
+  //   console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
+  // });
 
   async function upsertUser(userName){
     console.log("User:" + JSON.stringify(userName) );

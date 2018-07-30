@@ -33,7 +33,7 @@
 </template>
 
 <script>
-// import io from 'socket.io-client';
+import io from 'socket.io-client';
 
 export default {
   name: 'GraphChat',
@@ -103,20 +103,12 @@ export default {
       messages.unshift({message:data, sender:sentBy, timestamp:new Date(timestamp)}); //Add to beginning of array.
     }
 
-    // this.socket = io(process.env.VUE_APP_BASE_URL);
-    // var exampleSocket = new WebSocket("ws://localhost:5000/graphql", "messageAdded");
-    var exampleSocket = new WebSocket("ws://localhost:5000/wsGraph");
-    // var socket = this.socket;
+    this.socket = io(process.env.VUE_APP_BASE_URL);
+    var socket = this.socket;
 
-    // {'force new connection':true}
-    this.socket = exampleSocket;
-    // socket.on('connect', function(data) {
-    //    socket.emit('join', 'Hello server from client');
-    // });
-    exampleSocket.onopen = function (event) {
-      console.log("OPENED SOCKET 😄")
-      // exampleSocket.send("Here's some text that the server is urgently awaiting!");
-    };
+    socket.on('connect', function(data) {
+       socket.emit('join', 'Hello server from client');
+    });
 
 
     this.getRecentMessages().then((res) => {
@@ -133,13 +125,9 @@ export default {
 
     });
 
-   // socket.on('newMessage', function(data) {
-   //   addToRecord(data.body, data.sender.name, data.timestamp);
-   // });
-   exampleSocket.onmessage = function (event) {
-     console.log("Recieved FROM THE SERVER");
-      console.log(event.data);
-    }
+   socket.on('newMessage', function(data) {
+     addToRecord(data.body, data.sender.name, data.timestamp);
+   });
 
   },
   beforeDestroy() {
