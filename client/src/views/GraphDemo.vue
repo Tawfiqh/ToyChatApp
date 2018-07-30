@@ -19,7 +19,7 @@ export default {
 
   data: () => ({
     queryResult: "",
-    query: "hi",
+    query: "hi"
   }),
   methods:{
     async requestNew(){
@@ -35,20 +35,7 @@ export default {
   },
   async mounted() {
     this.requestNew();
-    var exampleSocket = new WebSocket("ws://localhost:5000/graphql");
 
-    exampleSocket.onopen = function (event) {
-      console.log("OPEN");
-      exampleSocket.send("subscription { messageAdded(channelId: 1) { id  text}}");
-    };
-
-    exampleSocket.onmessage = function (event) {
-      console.log(event.data);
-    }
-
-    // ws.on('messageAdded', function incoming(data) {
-    //   console.log("THIS FROM WS" + data);
-    // });
 
 
   },
