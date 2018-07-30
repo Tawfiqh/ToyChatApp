@@ -158,6 +158,9 @@ export default {
     .row{
       flex-direction: column-reverse;
     }
+    .col-2{
+      display: none;
+    }
 
   }
 
