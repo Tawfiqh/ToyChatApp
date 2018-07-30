@@ -1,16 +1,22 @@
+const { ApolloServer, gql } = require('apollo-server-koa');
+
+const Koa = require('koa');
+
 const serve = require('koa-static');
 const _ = require('lodash');
-const Koa = require('koa');
+
 const Router = require('koa-router');
 const socket = require('socket.io');
-const { ApolloServer, gql } = require('apollo-server-koa');
 const sqlite3 = require('sqlite3');
 
 const randomEmoji = require('./random-emoji')
 const randomWords = require('./random-words/random-words')
 
-router = new Router();
 const app = new Koa();
+
+
+
+router = new Router();
 
 var db = null;
 
@@ -24,15 +30,24 @@ enableCors();
 setupOtherEndpoints();
 graphQlSetup();
 
-var server = app.listen({ port: 3000 }, (url) => {
-  console.log(`Server ready at :3000`);
+
+
+
+
+var port = 4000;
+
+var server = app.listen({ port: port }, () => {
+  console.log(`Server ready at localhost:${port}`);
 });
+
+
+
+
 
 // Needs to happen after starting the server (I think)
 const io = new socket(server)
 var recentMessages =[];
 setupIoChatServer();
-
 
 
 
@@ -67,11 +82,13 @@ function setupOtherEndpoints(){
     ctx.body = await formatNewUserId();
   });
 
+
   app.use(router.routes()).use(router.allowedMethods());
 
   router.redirect('/chat', '/chat.html');
   app.use(serve('./public'));
   app.use(serve('./basic-client'));
+
 
 }
 
@@ -82,14 +99,6 @@ function setupOtherEndpoints(){
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 function setupLogging(){
-  //Init request
-  // x-response-time
-  // app.use(async (ctx, next) => {
-  //   const start = Date.now();
-  //   await next();
-  //   const ms = Date.now() - start;
-  //   ctx.set('X-Response-Time', `${ms}ms`);
-  // });
   // logger
   app.use(async (ctx, next) => {
     console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
@@ -102,10 +111,6 @@ function setupLogging(){
   });
 
 }
-
-
-
-
 
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -128,24 +133,7 @@ function setupIoChatServer(){
 
     socket.on('messages', function(data){
       console.log("Recieved: " + JSON.stringify(data))
-      recentMessages.push(data);
-
-      db_start()
-      const insertData = `'${data["message"]}', '${data["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
-
-      let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
-      console.log("sql:" + sql);
-      db.all(sql, [], (err, rows) => {
-        if (err) {
-          throw err;
-        }
-        rows.forEach((row) => {
-          console.log(row.name);
-        });
-      });
-
-      // close the database connection
-      db.close();
+      // recentMessages.push(data);
 
       if (recentMessages.length > recentMessagesBufferSize){
         recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
@@ -155,6 +143,8 @@ function setupIoChatServer(){
       // socket.emit('newMessage', data); //Only sends to sender
   		// socket.broadcast.emit('newMessage', data); // sends to everyone apart from sender.
   	});
+
+
   })
 }
 
@@ -195,9 +185,6 @@ function calculateServerStatus(){
 
 
 function graphQlSetup(){
-  import { PubSub, withFilter } from 'graphql-subscriptions';
-
-  export const pubsub = new PubSub();
 
   class User {
     constructor(name,age) {
@@ -216,27 +203,21 @@ function graphQlSetup(){
 
   var chats = [];
 
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
   const schema = gql`
     type Query { # define the query
       hello: String # define the fields
       byeBye: String
-      Users: [User]
+      users: [User]
       getUsersAboveAge(age: Int!): [User]
       messages(limit: Int): [Message]
       newUser: User
     }
 
-    type Comment {
-    id: String
-    content: String
-    }
-
-    type Subscription {
-      commentAdded(repoFullName: String!): Comment
-    }
-
     type Mutation {
       sendMessage(message: MessageInput): Message
+      addUser(userName: String):User
     }
 
     input MessageInput{
@@ -247,14 +228,16 @@ function graphQlSetup(){
     type Message{
       timestamp: String
       body: String
-      sender: String
+      sender: User
     }
 
     type User { # define the type
       name: String
-      timestamp: Int
-      age: Int
+      timestamp: String
+      id: Int
+      messages: [Message]
     }
+
   `;
 
 
@@ -264,7 +247,73 @@ function graphQlSetup(){
     Query:{
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
-      Users: () => users,
+      users: (result, {limit}) => {
+
+        if (!limit){
+          console.log("NoLimit: "+limit);
+          limit = 100;
+        } else{
+          console.log("Limit: "+limit);
+        }
+
+        return new Promise( function(resolve, reject){
+
+          db_start();
+
+          var results = [];
+
+          var hashResults = {};
+
+
+          db.all(`SELECT u.userId, nickname, u.timestamp, m.timestamp as mTimestamp, body
+                  FROM 'users' u
+                  JOIN 'messages' m on m.userId = u.userId
+                  ORDER by u.timestamp DESC
+                  LIMIT $1 `,
+          [limit],
+          (err, rows) => {
+
+            if (err) {
+              console.log("naaaah");
+              reject(err);
+            }
+
+            if(rows != undefined){
+
+              rows.forEach((row) => {
+
+                if(!hashResults[row["userId"]]){
+                  hashResults[row["userId"]] = {
+                    name: row["nickname"],
+                    id: row["userId"],
+                    timestamp: row["timestamp"],
+                    messages: []
+                  }
+                }
+
+                hashResults[row["userId"]]["messages"].push({
+                  timestamp: row["mTimestamp"],
+                  body: row["body"],
+                  sender: hashResults[row["userId"]]
+                });
+
+              });
+
+              Object.keys(hashResults).forEach((userId)=>{
+
+                results.push(hashResults[userId]);
+
+              });
+            }
+
+            resolve(results);
+          });
+
+          // close the database connection
+          db.close();
+        });
+
+      },
       getUsersAboveAge: (result, {age}) => {
         console.log("Age: "+ age);
 
@@ -284,19 +333,35 @@ function graphQlSetup(){
           db_start();
 
           results = [];
+          console.log("Limit: "+limit);
 
-          let sql = `SELECT timestamp, body, userId FROM messages ORDER by timestamp DESC LIMIT ${limit};`;
           // console.log("sql:" + sql);
-          db.all(sql, [], (err, rows) => {
+          db.all(`SELECT m.timestamp, m.body,
+                  u.nickname, u.timestamp as uTimestamp, u.userId
+                  FROM 'messages' m
+                  JOIN 'users' u on u.userId = m.userId
+                  ORDER by m.timestamp DESC LIMIT $1;`,
+           [limit], (err, rows) => {
             if (err) {
-              console.log("naaaah");
-              reject(err);
+              console.log("Failed with err:"+err);
+              resolve([]);
+            }
+
+            if(rows == undefined){
+
+              resolve(results);
+              return;
+
             }
 
             rows.forEach((row) => {
               results.push({
                 body: row["body"],
-                sender: row["userId"],
+                sender: {
+                  name: row["nickname"],
+                  timestamp: row["uTimestamp"],
+                  id: row["userId"]
+                },
                 timestamp: row["timestamp"],
               });
 
@@ -315,63 +380,197 @@ function graphQlSetup(){
       newUser: async () => {
         var name = await formatNewUserId();
         return new User(name, 99);
-      }
+      },
+      // channels: () => {
+      //   return channels;
+      // },
+      // channel: (root, { id }) => {
+      //   return channels.find(channel => channel.id === id);
+      // },
     },
     Mutation: {
-      sendMessage : (result, {message}) => {
+      sendMessage: async (result, {message}) => {
 
         console.log("Sender:" + JSON.stringify(message["sender"]));
         console.log("Body:" + JSON.stringify(message["body"]));
 
+        // ============================== Put user into database. ==============================
+        var insertResult = await upsertUser(message["sender"])
 
         db_start()
-        const insertData = `'${message["body"]}', '${message["sender"]}', strftime('%Y-%m-%d %H:%M:%S:%f','now')`;
-        let sql = `INSERT INTO messages(body, userId,timestamp) VALUES (${insertData})`;
 
-        db.all(sql, [], (err, rows) => {
+        db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $user, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
+         {
+           "$body":message["body"],
+           "$user":insertResult["id"],
+          }, (err, rows) => {
           if (err) {
-            throw err;
+            console.error("FAILED TO WRITE TO DB");
+            return;
           }
+          if(rows.length == 0) return;
+
           rows.forEach((row) => {
-            console.log(row.name);
+            console.log(row);
           });
         });
-
+        
         // close the database connection
         db.close();
+        var result  = {body: message["body"], sender:insertResult, timestamp: new Date()};
+        io.sockets.emit('newMessage', result); //Sends to everyone
 
+        return result;
 
-        const payload = {
-            commentAdded: {
-                id: '1',
-                content: 'Hello!',
-            }
-        };
+      },
+      addUser: async (result, {userName}) => {
+        var insertResult = await upsertUser(userName)
 
-        pubsub.publish('commentAdded', payload);
+        return insertResult;
 
-
-        return { body: message["body"], sender: message["sender"] };
-
-      }
+      },
+      // addChannel: (root, args) => {
+      //   const newChannel = { id: String(nextId++), messages: [], name: args.name };
+      //   channels.push(newChannel);
+      //   return newChannel;
+      // },
+      // addMessage: (root, { message }) => {
+      //   const channel = channels.find(channel => channel.id === message.channelId);
+      //   if(!channel)
+      //     throw new Error("Channel does not exist");
+      //
+      //   const newMessage = { id: String(nextMessageId++), text: message.text };
+      //   channel.messages.push(newMessage);
+      //
+      //   pubsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
+      //
+      //   return newMessage;
+      // },
     },
-    Subscription: {
-           commentAdded: {
-             subscribe: () => pubsub.asyncIterator('commentAdded')
-           }
-    },
+    // Subscription: {
+    //   messageAdded: {
+    //     subscribe: () => pubsub.asyncIterator('messageAdded')
+    //   }
+    // }
   };
-
 
   const apolloserver =  new ApolloServer(
    {
      typeDefs: schema,
      resolvers,
-     formatError: (err) => { console.log(err); return err }
+     formatError: (err) => { console.log(err); return err },
+     context: ({ ctx }) => ctx,
+     subscriptions: {
+      onConnect: (connectionParams, webSocket) => {
+        console.log(connectionParams);
+        // if (connectionParams.authToken) {
+        //   return validateToken(connectionParams.authToken)
+        //     .then(findUser(connectionParams.authToken))
+        //     .then(user => {
+        //       return {
+        //         currentUser: user,
+        //       };
+        //     });
+        // }
+        //
+        // throw new Error('Missing auth token!');
+      },
+     },
    }
   );
 
-  apolloserver.applyMiddleware({ app, path:'/graph' });
+
+  apolloserver.applyMiddleware({ app, path:'/graphql' });
+
+
+  // Subscription listener for
+  // const http = require('http');
+  // const PORT = port + 1000;
+  //
+  // const httpServer = http.createServer(app.callback());
+  // apolloserver.installSubscriptionHandlers(httpServer);
+  //
+  // // We are calling `listen` on the http server variable, and not on `app`.
+  // httpServer.listen(PORT, () => {
+  //   console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
+  //   console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
+  // })
+
+  async function upsertUser(userName){
+    console.log("User:" + JSON.stringify(userName) );
+
+
+    db_start()
+
+    var selectFromDb = new Promise( function(resolve, reject){
+
+      db.all(`select userId, nickname ,timestamp from users where nickname = $nickname LIMIT 1`,
+       {
+         "$nickname":userName
+        }, (err, rows) => {
+        if (err) {
+          console.error("FAILED TO WRITE TO DB");
+          return;
+        }
+
+        if(rows.length == 0){
+          resolve(null);
+          return;
+        }
+
+        resolve(rows[0]);
+        return;
+
+      });
+
+      // close the database connection
+      db.close();
+
+    });
+
+    var selectResult = await selectFromDb;
+
+    if (selectResult != null){
+
+      return { name:selectResult["nickname"], timestamp: selectResult["timestamp"], id: selectResult["userId"]};
+
+    }
+
+
+    // ============================== Put user into database. ==============================
+    db_start()
+
+    var insertResult = new Promise( function(resolve, reject){
+      db.run(`INSERT INTO users( nickname ,timestamp) VALUES ($nickname, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
+       {
+         "$nickname":userName
+       }, function(err){
+        if (err) {
+          console.error("FAILED TO WRITE TO DB");
+          resolve(null);
+          return;
+        }
+        resolve(this.lastID);
+
+
+      });
+    });
+
+    // close the database connection
+    db.close();
+
+
+    var insertId = await insertResult;
+
+    if (insertId == null){
+      return { };
+    }
+
+    return { name:userName, timestamp: new Date(), id: insertId};
+
+
+  }
+
 
 };
 
@@ -380,8 +579,8 @@ function setupDb(){
   db_start();
 
   db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId TEXT, timestamp TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS users (userId TEXT, sender Int, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId INTEGER, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS users (userId INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT, timestamp TEXT)");
     // db.run("CREATE TABLE IF NOT EXISTS chats (userId TEXT, sender Int, timestamp DATETIME(6))");
   });
 

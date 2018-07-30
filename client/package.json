@@ -16,7 +16,8 @@
     "subscriptions-transport-ws": "^0.9.13",
     "vue": "^2.5.16",
     "vue-cli": "^2.9.6",
-    "vue-router": "^3.0.1"
+    "vue-router": "^3.0.1",
+    "ws": "^6.0.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.0.0-beta.15",
