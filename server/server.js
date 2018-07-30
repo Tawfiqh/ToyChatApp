@@ -7,7 +7,6 @@ const _ = require('lodash');
 
 const { PubSub } = require('graphql-subscriptions');
 
-const pubsub = new PubSub();
 
 
 const Router = require('koa-router');
@@ -430,8 +429,9 @@ function graphQlSetup(){
         // close the database connection
         db.close();
         var result  = {body: message["body"], sender:insertResult, timestamp: new Date()};
-        io.sockets.emit('newMessage', result); //Sends to everyone
+        // io.sockets.emit('newMessage', result); //Sends to everyone
 
+        console.log("PUBSUB!!");
         pubsub.publish('messageAdded', {messageAdded: result});
 
         return result;
@@ -456,7 +456,7 @@ function graphQlSetup(){
       //   const newMessage = { id: String(nextMessageId++), text: message.text };
       //   channel.messages.push(newMessage);
       //
-      //   pubsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
+      //   pubxsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
       //
       //   return newMessage;
       // },
@@ -475,20 +475,7 @@ function graphQlSetup(){
      formatError: (err) => { console.log(err); return err },
      context: ({ ctx }) => ctx,
      subscriptions: {
-      onConnect: (connectionParams, webSocket) => {
-        console.log(connectionParams);
-        // if (connectionParams.authToken) {
-        //   return validateToken(connectionParams.authToken)
-        //     .then(findUser(connectionParams.authToken))
-        //     .then(user => {
-        //       return {
-        //         currentUser: user,
-        //       };
-        //     });
-        // }
-        //
-        // throw new Error('Missing auth token!');
-      },
+      path:"/wsGraph",
      },
    }
   );
@@ -504,14 +491,13 @@ function graphQlSetup(){
   const httpServer = http.createServer(app.callback());
   apolloserver.installSubscriptionHandlers(httpServer);
 
-  console.log("port:"+port);
-  console.log("PORT:"+PORT);
+  const pubsub = new PubSub();
 
   // We are calling `listen` on the http server variable, and not on `app`.
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
     console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
-  })
+  });
 
   async function upsertUser(userName){
     console.log("User:" + JSON.stringify(userName) );
