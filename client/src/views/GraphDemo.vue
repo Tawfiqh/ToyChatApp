@@ -42,6 +42,7 @@ export default {
 
       var newName = this._.get(data, ["data", "newUser", "name"], null);
       store.commit('addVisitor', newName);
+
       this.storeVal = store.state.visitors;
       this.storeVal1 = store.getters.lastVisitor;
       this.storeVal2 = store.getters.uniqueVisitors;
