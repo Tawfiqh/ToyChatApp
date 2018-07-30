@@ -257,45 +257,26 @@ function graphQlSetup(){
     type Query { # define the query
       hello: String # define the fields
       byeBye: String
-      Users: [User]
+      users: [User]
       getUsersAboveAge(age: Int!): [User]
-      messages(limit: Int): [Messagex]
+      messages(limit: Int): [Message]
       newUser: User
-      channels: [Channel]    # "[]" means this is a list of channels
-      channel(id: ID!): Channel
-    }
-    type Channel {
-      id: ID!                # "!" denotes a required field
-      name: String
-      messages: [Message]!
-    }
-
-    input MessageInput{
-      channelId: ID!
-      text: String
-    }
-
-    type Message {
-      id: ID!
-      text: String
     }
 
     type Mutation {
-      sendMessage(message: MessageInputx): Messagex
+      sendMessage(message: MessageInput): Message
       addUser(userName: String):User
-      addChannel(name: String!): Channel
-      addMessage(message: MessageInput!): Message
     }
 
-    input MessageInputx{
+    input MessageInput{
       body: String
       sender: String
     }
 
-    type Messagex{
+    type Message{
       timestamp: String
       body: String
-      sender: String
+      sender: User
     }
 
     type User { # define the type
@@ -304,9 +285,6 @@ function graphQlSetup(){
       id: Int
     }
 
-    type Subscription {
-      messageAdded(channelId: ID!): Message
-    }
   `;
 
 
@@ -316,7 +294,7 @@ function graphQlSetup(){
     Query:{
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
-      Users: () => async (result, {limit}) => {
+      users: () => async (result, {limit}) => {
 
         if (!limit){
           console.log("NoLimit: "+limit);
@@ -381,16 +359,21 @@ function graphQlSetup(){
           db_start();
 
           results = [];
+          console.log("Limit: "+limit);
 
-          let sql = `SELECT timestamp, body, userId FROM messages ORDER by timestamp DESC LIMIT ${limit};`;
           // console.log("sql:" + sql);
-          db.all(sql, [], (err, rows) => {
+          db.all(`SELECT m.timestamp, m.body,
+                  u.nickname, u.timestamp as uTimestamp, u.userId
+                  FROM 'messages' m
+                  JOIN 'users' u on u.userId = m.userId
+                  ORDER by m.timestamp DESC LIMIT $1;`,
+           [limit], (err, rows) => {
             if (err) {
-              console.log("naaaah");
-              reject(err);
+              console.log("Failed with err:"+err);
+              resolve([]);
             }
 
-            if(rows.length == 0){
+            if(rows == undefined){
 
               resolve(results);
               return;
@@ -400,7 +383,11 @@ function graphQlSetup(){
             rows.forEach((row) => {
               results.push({
                 body: row["body"],
-                sender: row["userId"],
+                sender: {
+                  name: row["nickname"],
+                  timestamp: row["uTimestamp"],
+                  id: row["userId"]
+                },
                 timestamp: row["timestamp"],
               });
 
@@ -420,27 +407,28 @@ function graphQlSetup(){
         var name = await formatNewUserId();
         return new User(name, 99);
       },
-      channels: () => {
-        return channels;
-      },
-      channel: (root, { id }) => {
-        return channels.find(channel => channel.id === id);
-      },
+      // channels: () => {
+      //   return channels;
+      // },
+      // channel: (root, { id }) => {
+      //   return channels.find(channel => channel.id === id);
+      // },
     },
     Mutation: {
-      sendMessage : (result, {message}) => {
+      sendMessage: async (result, {message}) => {
 
         console.log("Sender:" + JSON.stringify(message["sender"]));
         console.log("Body:" + JSON.stringify(message["body"]));
 
         // ============================== Put user into database. ==============================
+        var insertResult = await upsertUser(message["sender"])
 
         db_start()
 
-        db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $message, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
+        db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $user, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
          {
            "$body":message["body"],
-           "$message":message["sender"],
+           "$user":insertResult["id"],
           }, (err, rows) => {
           if (err) {
             console.error("FAILED TO WRITE TO DB");
@@ -461,102 +449,35 @@ function graphQlSetup(){
         return { body: message["body"], sender: message["sender"] };
 
       },
-      addUser : async (result, {userName}) => {
+      addUser: async (result, {userName}) => {
+        var insertResult = await upsertUser(userName)
 
-        console.log("User:" + JSON.stringify(userName) );
-
-
-        db_start()
-
-        var selectFromDb = new Promise( function(resolve, reject){
-
-          db.all(`select userId, nickname ,timestamp from users where nickname = $nickname LIMIT 1`,
-           {
-             "$nickname":userName
-            }, (err, rows) => {
-            if (err) {
-              console.error("FAILED TO WRITE TO DB");
-              return;
-            }
-
-            if(rows.length == 0){
-              resolve(null);
-              return;
-            }
-
-            resolve(rows[0]);
-            return;
-
-          });
-
-          // close the database connection
-          db.close();
-
-        });
-
-        var selectResult = await selectFromDb;
-
-        if (selectResult != null){
-
-          return { name:selectResult["nickname"], timestamp: selectResult["timestamp"], id: selectResult["userId"]};
-        }
-
-
-        // ============================== Put user into database. ==============================
-        db_start()
-
-        var insertResult = new Promise( function(resolve, reject){
-          db.run(`INSERT INTO users( nickname ,timestamp) VALUES ($nickname, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
-           {
-             "$nickname":userName
-           }, function(err){
-            if (err) {
-              console.error("FAILED TO WRITE TO DB");
-              resolve(null);
-              return;
-            }
-            resolve(this.lastID);
-
-
-          });
-        });
-
-        // close the database connection
-        db.close();
-
-
-        var insertId = await insertResult;
-
-        if (insertId == null){
-          return { };
-        }
-
-        return { name:userName, timestamp: new Date(), id: insertId};
+        return insertResult;
 
       },
-      addChannel: (root, args) => {
-        const newChannel = { id: String(nextId++), messages: [], name: args.name };
-        channels.push(newChannel);
-        return newChannel;
-      },
-      addMessage: (root, { message }) => {
-        const channel = channels.find(channel => channel.id === message.channelId);
-        if(!channel)
-          throw new Error("Channel does not exist");
-
-        const newMessage = { id: String(nextMessageId++), text: message.text };
-        channel.messages.push(newMessage);
-
-        pubsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
-
-        return newMessage;
-      },
+      // addChannel: (root, args) => {
+      //   const newChannel = { id: String(nextId++), messages: [], name: args.name };
+      //   channels.push(newChannel);
+      //   return newChannel;
+      // },
+      // addMessage: (root, { message }) => {
+      //   const channel = channels.find(channel => channel.id === message.channelId);
+      //   if(!channel)
+      //     throw new Error("Channel does not exist");
+      //
+      //   const newMessage = { id: String(nextMessageId++), text: message.text };
+      //   channel.messages.push(newMessage);
+      //
+      //   pubsub.publish('messageAdded', { messageAdded: newMessage, channelId: message.channelId });
+      //
+      //   return newMessage;
+      // },
     },
-    Subscription: {
-      messageAdded: {
-        subscribe: () => pubsub.asyncIterator('messageAdded')
-      }
-    }
+    // Subscription: {
+    //   messageAdded: {
+    //     subscribe: () => pubsub.asyncIterator('messageAdded')
+    //   }
+    // }
   };
 
   const apolloserver =  new ApolloServer(
@@ -601,7 +522,80 @@ function graphQlSetup(){
   //   console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
   // })
 
+  async function upsertUser(userName){
+    console.log("User:" + JSON.stringify(userName) );
 
+
+    db_start()
+
+    var selectFromDb = new Promise( function(resolve, reject){
+
+      db.all(`select userId, nickname ,timestamp from users where nickname = $nickname LIMIT 1`,
+       {
+         "$nickname":userName
+        }, (err, rows) => {
+        if (err) {
+          console.error("FAILED TO WRITE TO DB");
+          return;
+        }
+
+        if(rows.length == 0){
+          resolve(null);
+          return;
+        }
+
+        resolve(rows[0]);
+        return;
+
+      });
+
+      // close the database connection
+      db.close();
+
+    });
+
+    var selectResult = await selectFromDb;
+
+    if (selectResult != null){
+
+      return { name:selectResult["nickname"], timestamp: selectResult["timestamp"], id: selectResult["userId"]};
+
+    }
+
+
+    // ============================== Put user into database. ==============================
+    db_start()
+
+    var insertResult = new Promise( function(resolve, reject){
+      db.run(`INSERT INTO users( nickname ,timestamp) VALUES ($nickname, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
+       {
+         "$nickname":userName
+       }, function(err){
+        if (err) {
+          console.error("FAILED TO WRITE TO DB");
+          resolve(null);
+          return;
+        }
+        resolve(this.lastID);
+
+
+      });
+    });
+
+    // close the database connection
+    db.close();
+
+
+    var insertId = await insertResult;
+
+    if (insertId == null){
+      return { };
+    }
+
+    return { name:userName, timestamp: new Date(), id: insertId};
+
+
+  }
 
 
 };

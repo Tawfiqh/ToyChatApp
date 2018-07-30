@@ -26,8 +26,8 @@ export default {
     myId: "-",
     messages: [],
     message: "",
-    query: "{?}",
-    queryResult: "?",
+    query: "",
+    queryResult: "",
     socket: null
   }),
   methods:{

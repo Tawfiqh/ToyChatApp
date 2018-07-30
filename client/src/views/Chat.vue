@@ -100,9 +100,28 @@ form {
 li {
   list-style: none;
   width: 100vw;
-  height: 35px;
+  min-height: 35px;
   line-height: 35px;
   text-align: left;
+
+}
+
+@media (max-width: 768px) {
+
+  li{
+
+    display: flex;
+    flex-wrap: wrap;
+    height: auto;
+    margin-bottom: 35px;
+
+  }
+
+  .time-span{
+    flex-basis: 100%;
+
+  }
+
 }
 
 .user-span{
