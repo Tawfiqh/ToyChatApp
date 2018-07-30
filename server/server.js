@@ -1,9 +1,6 @@
 const { ApolloServer, gql } = require('apollo-server-koa');
 
 const Koa = require('koa');
-// const { PubSub, withFilter } = require('graphql-subscriptions');
-const { SubscriptionClient, addGraphQLSubscriptions } = require('subscriptions-transport-ws');
-
 
 const serve = require('koa-static');
 const _ = require('lodash');
@@ -15,52 +12,7 @@ const sqlite3 = require('sqlite3');
 const randomEmoji = require('./random-emoji')
 const randomWords = require('./random-words/random-words')
 
-// const pubsub = new PubSub();
 const app = new Koa();
-
-
-// var messages = [];
-//
-// var chats = [];
-//
-// const channels = [{
-//   id: '1',
-//   name: 'soccer',
-//   messages: [{
-//     id: '1',
-//     text: 'soccer is football',
-//   }, {
-//     id: '2',
-//     text: 'hello soccer world cup',
-//   },
-//  {
-//     id: '3',
-//     text: 'Tawfiq here',
-//   }]
-// }, {
-//   id: '2',
-//   name: 'baseball',
-//   messages: [{
-//     id: '3',
-//     text: 'baseball is life',
-//   }, {
-//     id: '4',
-//     text: 'hello baseball world series',
-//   }]
-// },
-// {
-//   id: '3',
-//   name: "tawfiq test",
-//   messages:[
-//     {
-//       id: '1',
-//       text: 'hello baseball world series'
-//     }
-//   ]
-//
-// }];
-// let nextId = 3;
-// let nextMessageId = 5;
 
 
 
@@ -283,6 +235,7 @@ function graphQlSetup(){
       name: String
       timestamp: String
       id: Int
+      messages: [Message]
     }
 
   `;
@@ -294,7 +247,7 @@ function graphQlSetup(){
     Query:{
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
-      users: () => async (result, {limit}) => {
+      users: (result, {limit}) => {
 
         if (!limit){
           console.log("NoLimit: "+limit);
@@ -307,30 +260,51 @@ function graphQlSetup(){
 
           db_start();
 
-          results = [];
+          var results = [];
+
+          var hashResults = {};
 
 
-
-          db.all("SELECT userId, nickname, timestamp FROM members ORDER by timestamp DESC LIMIT $limit;",
-          {"limit":limit},
+          db.all(`SELECT u.userId, nickname, u.timestamp, m.timestamp as mTimestamp, body
+                  FROM 'users' u
+                  JOIN 'messages' m on m.userId = u.userId
+                  ORDER by u.timestamp DESC
+                  LIMIT $1 `,
+          [limit],
           (err, rows) => {
+
             if (err) {
               console.log("naaaah");
               reject(err);
             }
 
-            if(rows.length == 0) return;
+            if(rows != undefined){
 
-            rows.forEach((row) => {
-              results.push({
-                name: row["nickname"],
-                id: row["userId"],
-                timestamp: row["timestamp"],
+              rows.forEach((row) => {
+
+                if(!hashResults[row["userId"]]){
+                  hashResults[row["userId"]] = {
+                    name: row["nickname"],
+                    id: row["userId"],
+                    timestamp: row["timestamp"],
+                    messages: []
+                  }
+                }
+
+                hashResults[row["userId"]]["messages"].push({
+                  timestamp: row["mTimestamp"],
+                  body: row["body"],
+                  sender: hashResults[row["userId"]]
+                });
+
               });
 
-              // console.log(row);
+              Object.keys(hashResults).forEach((userId)=>{
 
-            });
+                results.push(hashResults[userId]);
+
+              });
+            }
 
             resolve(results);
           });
