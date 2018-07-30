@@ -1,6 +1,10 @@
 <template>
   <div id="chat" >
     <h1> GraphQuery! </h1>
+    <h3>{{storeVal}}</h3>
+    <pre>{{storeVal1}}</pre>
+    <pre>{{storeVal2}}</pre>
+    <pre>{{storeVal3}}</pre>
     <a class="emoji-button" v-on:click="requestNew();" href="#">🦅</a>
 
     <h3 class="code"> {{ query }} </h3>
@@ -13,6 +17,7 @@
 </template>
 
 <script>
+import store from '../store.js';
 
 export default {
   name: 'GraphDemo',
@@ -20,6 +25,10 @@ export default {
   data: () => ({
     queryResult: "",
     query: "hi",
+    storeVal: 0,
+    storeVal1: 0,
+    storeVal2: 0,
+    storeVal3: 0,
   }),
   methods:{
     async requestNew(){
@@ -31,24 +40,17 @@ export default {
       this.query = JSON.stringify(body,null,2);
       this.queryResult = JSON.stringify(data,null,2);
 
+      var newName = this._.get(data, ["data", "newUser", "name"], null);
+      store.commit('addVisitor', newName);
+      this.storeVal = store.state.visitors;
+      this.storeVal1 = store.getters.lastVisitor;
+      this.storeVal2 = store.getters.uniqueVisitors;
+      this.storeVal3 = store.getters.firstVisitor;
+
     }
   },
   async mounted() {
     this.requestNew();
-    var exampleSocket = new WebSocket("ws://localhost:5000/graphql");
-
-    exampleSocket.onopen = function (event) {
-      console.log("OPEN");
-      exampleSocket.send("subscription { messageAdded(channelId: 1) { id  text}}");
-    };
-
-    exampleSocket.onmessage = function (event) {
-      console.log(event.data);
-    }
-
-    // ws.on('messageAdded', function incoming(data) {
-    //   console.log("THIS FROM WS" + data);
-    // });
 
 
   },
