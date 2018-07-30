@@ -22,13 +22,26 @@ export default {
 
 
 <style>
+
+body{
+  margin: -1px;
+}
+
+body, html{
+  height: 100vh;
+}
+
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
+  background-image: linear-gradient(to top, #feada6 0%, #f5efef 100%);
+  min-height: 100vh;
+  padding: 0 10%;
 }
+
 #nav {
   padding: 30px;
 }
@@ -37,7 +50,7 @@ export default {
   background: #A770EF;  /* fallback for old browsers */
   background: -webkit-linear-gradient(to right, #FDB99B, #CF8BF3, #A770EF);  /* Chrome 10-25, Safari 5.1-6 */
   background: linear-gradient(to right, #FDB99B, #CF8BF3, #A770EF); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
-  width: 100%;
+  /* width: 100vw; */
   margin-top: -30px;
 }
 

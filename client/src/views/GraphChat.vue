@@ -147,11 +147,11 @@ export default {
 
   .col-2{
     flex-basis: 30%;
-    max-width: 30%;
   }
 
   .row{
     display: flex;
+    flex-direction: column;
   }
 
   @media (max-width: 768px) {
