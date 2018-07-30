@@ -23,10 +23,6 @@ export default {
 
 <style>
 
-body{
-  margin: -1px;
-}
-
 body, html{
   height: 100vh;
 }
@@ -40,6 +36,7 @@ body, html{
   background-image: linear-gradient(to top, #feada6 0%, #f5efef 100%);
   min-height: 100vh;
   padding: 0 10%;
+  overflow: auto;
 }
 
 #nav {

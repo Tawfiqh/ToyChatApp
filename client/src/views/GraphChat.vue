@@ -156,10 +156,10 @@ export default {
 
   @media (max-width: 768px) {
     .row{
-      flex-direction: column-reverse;
+      /* flex-direction: column-reverse; */
     }
     .col-2{
-      display: none;
+      /* display: none; */
     }
 
   }
@@ -168,10 +168,9 @@ export default {
     text-align: left;
     font-family: monospace;
     white-space: pre;
+    word-wrap: break-word;
+    white-space: pre-wrap;
   }
 
-  h4.code{
-    white-space: normal;
-  }
 
 </style>

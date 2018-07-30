@@ -5,6 +5,11 @@ const Koa = require('koa');
 const serve = require('koa-static');
 const _ = require('lodash');
 
+const { PubSub } = require('graphql-subscriptions');
+
+const pubsub = new PubSub();
+
+
 const Router = require('koa-router');
 const socket = require('socket.io');
 const sqlite3 = require('sqlite3');
@@ -28,13 +33,15 @@ setupDb();
 setupLogging();
 enableCors();
 setupOtherEndpoints();
+
+var port = 4000;
+
 graphQlSetup();
 
 
 
 
 
-var port = 4000;
 
 var server = app.listen({ port: port }, () => {
   console.log(`Server ready at localhost:${port}`);
@@ -218,6 +225,11 @@ function graphQlSetup(){
     type Mutation {
       sendMessage(message: MessageInput): Message
       addUser(userName: String):User
+    }
+
+
+    type Subscription {
+      messageAdded: Message
     }
 
     input MessageInput{
@@ -414,11 +426,13 @@ function graphQlSetup(){
             console.log(row);
           });
         });
-        
+
         // close the database connection
         db.close();
         var result  = {body: message["body"], sender:insertResult, timestamp: new Date()};
         io.sockets.emit('newMessage', result); //Sends to everyone
+
+        pubsub.publish('messageAdded', {messageAdded: result});
 
         return result;
 
@@ -447,11 +461,11 @@ function graphQlSetup(){
       //   return newMessage;
       // },
     },
-    // Subscription: {
-    //   messageAdded: {
-    //     subscribe: () => pubsub.asyncIterator('messageAdded')
-    //   }
-    // }
+    Subscription: {
+      messageAdded: {
+        subscribe: () => pubsub.asyncIterator('messageAdded')
+      }
+    }
   };
 
   const apolloserver =  new ApolloServer(
@@ -484,17 +498,20 @@ function graphQlSetup(){
 
 
   // Subscription listener for
-  // const http = require('http');
-  // const PORT = port + 1000;
-  //
-  // const httpServer = http.createServer(app.callback());
-  // apolloserver.installSubscriptionHandlers(httpServer);
-  //
-  // // We are calling `listen` on the http server variable, and not on `app`.
-  // httpServer.listen(PORT, () => {
-  //   console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
-  //   console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
-  // })
+  const http = require('http');
+  const PORT = port + 1000;
+
+  const httpServer = http.createServer(app.callback());
+  apolloserver.installSubscriptionHandlers(httpServer);
+
+  console.log("port:"+port);
+  console.log("PORT:"+PORT);
+
+  // We are calling `listen` on the http server variable, and not on `app`.
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
+    console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
+  })
 
   async function upsertUser(userName){
     console.log("User:" + JSON.stringify(userName) );
