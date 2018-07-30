@@ -99,7 +99,7 @@ form {
 
 li {
   list-style: none;
-  width: 100vw;
+  width: 100%;
   min-height: 35px;
   line-height: 35px;
   text-align: left;

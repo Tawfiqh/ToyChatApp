@@ -1,18 +1,33 @@
 <template>
   <div id="chat" >
     <h1> Graph QL Chat! </h1>
-    <h4> {{ query }} </h4>
-    <h3> {{ queryResult }} </h3>
-    <h3>Your ID is: {{ myId }}</h3>
 
-    <input type="text" v-on:keyup.enter="submitForm();" v-model="message" placeholder="Type message">
-    <a class="toggle-bar" v-on:click="submitForm();" href="#">🛫</a>
+    <div class="row">
 
-    <ul id="message-container">
-      <li v-for="(message, index) in messages" v-bind:key="index">
-        <span class="time-span"> {{message.timestamp.toTimeString().substr(0,8)}} </span> <span class="user-span"> {{message.sender}} </span> {{message.message}}
-      </li>
-    </ul>
+      <div class = "col-1">
+
+        <h3>Your ID is: {{ myId }}</h3>
+
+        <input type="text" v-on:keyup.enter="submitForm();" v-model="message" placeholder="Type message">
+        <a class="toggle-bar" v-on:click="submitForm();" href="#">🛫</a>
+
+        <ul id="message-container">
+          <li v-for="(message, index) in messages" v-bind:key="index">
+            <span class="time-span"> {{message.timestamp.toTimeString().substr(0,8)}} </span> <span class="user-span"> {{message.sender}} </span> {{message.message}}
+          </li>
+        </ul>
+
+      </div>
+
+      <div class="col-2">
+
+        <h4> {{ query }} </h4>
+        <h3> {{ queryResult }} </h3>
+
+      </div>
+    </div>
+
+
   </div>
 
 </template>
@@ -40,6 +55,8 @@ export default {
         "variables": { "body": this.message, "sender": this.myId}
       }
       const { data } = await this.axios.post( endpoint, body );
+      this.query = JSON.stringify(body);
+      this.queryResult = JSON.stringify(data);
 
       this.message = "";
     },
@@ -50,6 +67,8 @@ export default {
       var body = { "query": "{newUser{ name }}" };
       const { data } = await this.axios.post( endpoint, body );
 
+      this.query = JSON.stringify(body);
+      this.queryResult = JSON.stringify(data);
 
       return this._.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
 
@@ -62,6 +81,8 @@ export default {
         "variables":{"limit": 10}
       }
       const { data } = await this.axios.post( endpoint, body );
+      this.query = JSON.stringify(body);
+      this.queryResult = JSON.stringify(data);
 
       return this._.get(data, "data.messages", [] );
 
@@ -118,3 +139,26 @@ export default {
 
 
 </script>
+<style>
+
+  .col-1{
+    flex-basis: 70%;
+  }
+
+  .col-2{
+    flex-basis: 30%;
+  }
+
+  .row{
+    display: flex;
+  }
+
+  @media (max-width: 768px) {
+    .row{
+      flex-direction: column-reverse;
+    }
+
+
+  }
+
+</style>
