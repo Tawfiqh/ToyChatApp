@@ -58,7 +58,7 @@ export default {
 
       const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
       var body = {
-        "query": "query queryTest( $limit : Int ){ messages(limit: $limit){ body, sender, timestamp } }",
+        "query": "query queryTest( $limit : Int ){ messages(limit: $limit){ body, sender{ name }, timestamp } }",
         "variables":{"limit": 10}
       }
       const { data } = await this.axios.post( endpoint, body );
@@ -91,12 +91,13 @@ export default {
     this.getRecentMessages().then((res) => {
 
       for(var i = res.length -1; i>= 0 ;i--){
+        var sender = this._.get(res, [i, "sender", "name"], null);
         var message = this._.get(res, [i, "body"], null);
         var timestamp = this._.get(res, [i, "timestamp"], "");
-        if (timestamp == null || message == null){
+        if (timestamp == null || message == null|| sender == null){
           continue;
         }
-        addToRecord(message, res[i].sender, timestamp);
+        addToRecord(message, sender, timestamp);
       }
 
     });
