@@ -64,12 +64,12 @@ function setup(port){
   return {server, router};
 }
 
-function setupApolloOnPath(apollo, path = '/graph'){
+function setupGraphServerOnPath(apollo, path = '/graph'){
   apollo.applyMiddleware({ app, path });
 }
 
 
 module.exports = {
   setup,
-  setupApolloOnPath
+  setupGraphServerOnPath
 }
