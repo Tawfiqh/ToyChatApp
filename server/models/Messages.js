@@ -1,4 +1,4 @@
-const Database = require('../db.js');
+const Database = require('../core/db.js');
 const Users = require('./Users.js');
 
 var db = new Database(process.env.DATABASE);

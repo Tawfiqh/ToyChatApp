@@ -1,6 +1,6 @@
 const randomWords = require('../random-words/random-words');
 const randomEmoji = require('../random-emoji');
-const Database = require('../db.js');
+const Database = require('../core/db.js');
 
 var db = new Database(process.env.DATABASE);
 

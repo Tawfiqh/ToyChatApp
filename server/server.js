@@ -8,10 +8,10 @@ const _ = require('lodash');
 const socket = require('socket.io');
 
 const randomEmoji = require('./random-emoji')
-const serverEngine = require('./serverEngine')
+const serverEngine = require('./core/serverEngine')
 const Users = require('./models/Users.js');
 const Messages = require('./models/Messages.js');
-const Database = require('./db.js');
+const Database = require('./core/db.js');
 
 var db = new Database(process.env.DATABASE);
 
