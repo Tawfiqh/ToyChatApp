@@ -16,6 +16,7 @@
     "apollo-client": "^2.3.7",
     "apollo-server": "^2.0.0",
     "apollo-server-koa": "^2.0.0-rc.12",
+    "dataloader": "^1.4.0",
     "dotenv": "^6.0.0",
     "graphql": "^0.13.2",
     "koa": "^2.5.1",

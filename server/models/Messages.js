@@ -96,4 +96,4 @@ class Messages{
 
 }
 
-module.exports = new Messages();
+module.exports = Messages;

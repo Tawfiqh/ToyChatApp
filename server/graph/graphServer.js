@@ -1,47 +1,13 @@
 const Messages = require('../models/Messages.js');
 const Users = require('../models/Users.js');
 const Database = require('../core/db.js');
+
+const GraphSchema = require('./schema.js')
+
 const { ApolloServer, gql } = require('apollo-server-koa');
 
 function graphServer({ io }){
-  const schema = gql`
-    type Query { # define the query
-      hello: String # define the fields
-      byeBye: String
-      users: [User]
-      messages(limit: Int): [Message]
-      newUser: User
-    }
-
-    type Mutation {
-      sendMessage(message: MessageInput): Message
-      addUser(userName: String):User
-    }
-
-
-    type Subscription {
-      messageAdded: Message
-    }
-
-    input MessageInput{
-      body: String
-      sender: String
-    }
-
-    type Message{
-      timestamp: String
-      body: String
-      sender: User
-    }
-
-    type User { # define the type
-      name: String
-      timestamp: String
-      id: Int
-      messages: [Message]
-    }
-  `;
-
+  const schema = GraphSchema();
 
   // Resolvers define the technique for fetching the types in the
   // schema.  We'll retrieve books from the "books" array above.
@@ -49,13 +15,13 @@ function graphServer({ io }){
     Query:{
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
-      users: (result, {limit}) => {
+      users: (result, {limit}, {Users}) => {
         return Users.getUsers(limit);
       },
-      messages: (result, {limit}) => {
+      messages: (result, {limit}, {Messages}) => {
         return Messages.getMessages(limit);
       },
-      newUser: async () => {
+      newUser: async (parent, _, {Users}) => {
         var name = await Users.newUserId();
         return {name:name};
       },
@@ -84,7 +50,10 @@ function graphServer({ io }){
      typeDefs: schema,
      resolvers,
      formatError: (err) => { console.log(err); return err },
-     context: ({ ctx }) => ctx,
+     context: {
+       Messages: new Messages(),
+       Users: new Users()
+     },
    }
   );
 
