@@ -59,30 +59,27 @@ export default {
       this.query = JSON.stringify(body,null,2);
       this.queryResult = JSON.stringify(data,null,2);
 
-      console.log("Post:"+endpoint);
-
       this.message = "";
     },
-    async newId(){
+    newId(){
 
-      await store.dispatch('setNewUserName');
+      store.dispatch('setNewUserName').then((res)=>{
 
-      this.myId = store.state.userName;
+        console.log("Updated to:"+res);
+        this.myId = res;
 
-      console.log("Updated to:"+this.myId);
-
-      return store.state.userName
+      });
 
     },
     async getId(){
-
+      console.log("Name is: " + store.state.userName);
       if(store.state.userName == null){
 
-        await store.commit('setNewUserName');
+        var newName = await store.dispatch('setNewUserName');
 
       }
 
-      return store.state.userName
+      return store.state.userName;
 
     },
     async getRecentMessages(){
@@ -93,6 +90,7 @@ export default {
         "variables":{"limit": 10}
       }
       const { data } = await this.axios.post( endpoint, body );
+
       this.query = JSON.stringify(body,null,2);
       this.queryResult = JSON.stringify(data,null,2);
 

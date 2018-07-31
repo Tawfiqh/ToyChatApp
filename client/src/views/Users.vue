@@ -43,7 +43,7 @@ export default {
       this.queryResult = JSON.stringify(data,null,2);
 
       var newName = this._.get(data, ["data", "newUser", "name"], null);
-      console.log(newName);
+
       store.commit('addVisitor', newName);
       this.updateVueXView();
 
@@ -51,9 +51,6 @@ export default {
   },
   async mounted() {
     await this.fetchUsers();
-  },
-  beforeDestroy() {
-
   }
 }
 
@@ -61,29 +58,10 @@ export default {
 
 
 <style>
-.hidden{
-  display: none;
-}
-.emoji-button{
-  font-size: 60px;
-  transition: all 0.2s;
-  text-shadow: 2px 2px rgba(0,0,0,0);
-  text-decoration: none;
-  line-height: 75px;
-}
 
-.emoji-button:hover{
-  font-size: 75px;
-  text-shadow: 2px 2px #cc6700;
-}
-
-.emoji-button:active{
-  font-size: 70px;
-}
-
-hr{
-  border: 1px solid grey;
-  margin: 100px 5px;
-}
+  hr{
+    border: 1px solid grey;
+    margin: 100px 5px;
+  }
 
 </style>

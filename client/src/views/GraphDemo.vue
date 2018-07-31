@@ -1,16 +1,19 @@
 <template>
   <div id="chat" >
-    <h1> GraphQuery! </h1>
-    <h3>{{storeVal}}</h3>
-    <pre>My current Name: {{myName}}</pre>
-    <pre>{{uniqueVisitors}}</pre>
-    <pre>Longest: {{longestName}}</pre>
+    <h1> Demo Page! </h1>
+
     <a class="emoji-button" v-on:click="requestNew();" href="javascript:">🦅</a><a class="emoji-button" v-on:click="emptyVueX();" href="javascript:">🚮</a>
 
-    <h3 class="code"> {{ query }} </h3>
+    <h3 class="code">{{ query }} </h3>
     <br  />
-    <p class="code"> {{ queryResult }} </p>
+    <p class="code">{{ queryResult }} </p>
 
+    <hr  />
+
+    <pre>My current Name: {{store.state.userName}}</pre>
+    <pre>{{store.getters.uniqueVisitors}}</pre>
+    <pre>Longest: {{store.getters.longestName}}</pre>
+    <h5>{{store.state.visitors}}</h5>
 
   </div>
 
@@ -25,24 +28,13 @@ export default {
   data: () => ({
     queryResult: "",
     query: "hi",
-    storeVal: 0,
-    lastVisitor: 0,
-    myName: 0,
-    uniqueVisitors: 0,
-    longestName: 0,
+    store: store
   }),
   methods:{
-    updateVueXView(){
-      this.storeVal = store.state.visitors;
-      this.lastVisitor = store.getters.lastVisitor;
-      this.uniqueVisitors = store.getters.uniqueVisitors;
-      this.longestName = store.getters.longestName;
-      this.myName = store.state.userName;
-    },
     async requestNew(){
 
       const endpoint = `${process.env.VUE_APP_BASE_URL}${process.env.VUE_APP_GRAPH_URL}`;
-      console.log("endpoint:"+endpoint);
+
       var body = { "query": "{newUser {name}}" };
       const { data } = await this.axios.post( endpoint, body );
 
@@ -54,17 +46,13 @@ export default {
       // store.commit('setNewUserName');
       store.commit('addVisitor', newName);
 
-      this.updateVueXView();
-
     },
     emptyVueX(){
       store.commit('empty');
-      this.updateVueXView();
     }
   },
   async mounted() {
     this.requestNew();
-    this.updateVueXView();
   },
   beforeDestroy() {
 

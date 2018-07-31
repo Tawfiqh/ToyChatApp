@@ -32,11 +32,10 @@ export default new Vuex.Store({
       var body = { "query": "{newUser{ name }}" };
       const { data } = await axios.post( endpoint, body );
 
-      // this.query = JSON.stringify(body,null,2);
-      // this.queryResult = JSON.stringify(data,null,2);
       var newName = _.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
 
       context.commit('setUserName', newName);
+      return newName;
     }
   },
   getters :{
