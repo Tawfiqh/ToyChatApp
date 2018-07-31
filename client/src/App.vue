@@ -37,6 +37,7 @@ body, html{
   min-height: 100vh;
   padding: 0 10%;
   overflow: auto;
+  background-attachment: fixed;
 }
 
 #nav {

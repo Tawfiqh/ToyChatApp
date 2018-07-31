@@ -1,26 +1,17 @@
 const { ApolloServer, gql } = require('apollo-server-koa');
 
-const Koa = require('koa');
 
-const serve = require('koa-static');
 const _ = require('lodash');
 
-const { PubSub } = require('graphql-subscriptions');
 
-
-
-const Router = require('koa-router');
 const socket = require('socket.io');
 const sqlite3 = require('sqlite3');
 
 const randomEmoji = require('./random-emoji')
 const randomWords = require('./random-words/random-words')
 
-const app = new Koa();
+const serverEngine = require('./serverEngine')
 
-
-
-router = new Router();
 
 var db = null;
 
@@ -29,9 +20,7 @@ function db_start(){
 };
 
 setupDb();
-setupLogging();
-enableCors();
-setupOtherEndpoints();
+
 
 var port = 4000;
 
@@ -39,111 +28,52 @@ graphQlSetup();
 
 
 
+var {server, router} = serverEngine.setup(port);
 
+setupOtherEndpoints(router);
 
-
-var server = app.listen({ port: port }, () => {
-  console.log(`Server ready at localhost:${port}`);
-});
-
-
-
-
-
-// Needs to happen after starting the server (I think)
+// Needs to run after starting the server (I think)
 const io = new socket(server)
-var recentMessages =[];
+
 setupIoChatServer();
 
 
 
 
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// Setup Functions
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-function enableCors(){
-  app.use(async (ctx, next) => {
-    ctx.set('Access-Control-Allow-Origin', "http://localhost:8080");
-    ctx.set('Access-Control-Allow-Credentials', 'true');
-    await next();
-  });
-}
-
-function setupOtherEndpoints(){
-
-  router.get('/hi', (ctx, next) => {
-    ctx.body = 'Hello World!';
-  });
-
-  router.get('/emoji', (ctx, next) => {
-   ctx.body = randomEmoji();
-  });
-
-  router.get('/status', (ctx, next) => {
-    ctx.body = calculateServerStatus();
-  });
-
-  router.get('/new-user-id', async (ctx, next) => {
-    ctx.body = await formatNewUserId();
-  });
 
 
-  app.use(router.routes()).use(router.allowedMethods());
-
-  router.redirect('/chat', '/chat.html');
-  app.use(serve('./public'));
-  app.use(serve('./basic-client'));
-
-
-}
-
-
-
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// Logging
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-function setupLogging(){
-  // logger
-  app.use(async (ctx, next) => {
-    console.log("\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
-    console.log(`>>>${ctx.method} ${ctx.url} start ⏰ \n`);
-    const start = Date.now();
-    await next();
-    const ms = Date.now() - start;
-    console.log(`\n>>> ${ctx.method} ${ctx.url} --- TimeTaken:${ms}`);
-    console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
-  });
-
-}
 
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Chat
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+function setupOtherEndpoints(router){
 
+    router.get('/emoji', (ctx, next) => {
+     ctx.body = randomEmoji();
+    });
+
+    router.get('/status', (ctx, next) => {
+      ctx.body = calculateServerStatus();
+    });
+
+    router.get('/new-user-id', async (ctx, next) => {
+      ctx.body = await formatNewUserId();
+    });
+
+}
 
 function setupIoChatServer(){
-  var recentMessagesBufferSize = 10;
+
   io.on('connection', function(socket){
     console.log('a user connected')
 
     socket.on('join', function(data) {
   		console.log(data);
-      recentMessages.forEach((x) => {
-          socket.emit('newMessage', x); //Only sends to sender
-        }
-      );
   	});
 
     socket.on('messages', function(data){
       console.log("Recieved: " + JSON.stringify(data))
-      // recentMessages.push(data);
-
-      if (recentMessages.length > recentMessagesBufferSize){
-        recentMessages = _.takeRight(recentMessages, recentMessagesBufferSize)
-      }
 
       io.sockets.emit('newMessage', data); //Sends to everyone
       // socket.emit('newMessage', data); //Only sends to sender
@@ -178,7 +108,6 @@ function calculateServerStatus(){
   var result = {
     peopleConnected: io.engine.clientsCount,
     clients: clients,
-    messageBuffer: recentMessages,
   };
 
   var prettyResult = JSON.stringify(result, null, 2);
@@ -425,9 +354,6 @@ function graphQlSetup(){
         var result  = {body: message["body"], sender:insertResult, timestamp: new Date()};
         io.sockets.emit('newMessage', result); //Sends to everyone
 
-        console.log("PUBSUB!!");
-        // pubsub.publish('messageAdded', {messageAdded: result});
-
         return result;
 
       },
@@ -437,11 +363,6 @@ function graphQlSetup(){
         return insertResult;
 
       },
-    },
-    Subscription: {
-      messageAdded: {
-        subscribe: () => pubsub.asyncIterator('messageAdded')
-      }
     }
   };
 
@@ -457,38 +378,8 @@ function graphQlSetup(){
    }
   );
 
+  serverEngine.setupApolloOnPath(apolloserver, '/graphql');
 
-  apolloserver.applyMiddleware({ app, path:'/graphql' });
-
-
-  // Subscription listener for
-  // const http = require('http');
-  // const PORT = port + 1000;
-  //
-  // const WebSocket = require('ws');
-  //
-  // const wss = new WebSocket.Server({ port: 5000 });
-  //
-  // wss.on('connection', function connection(ws) {
-  //
-  //   ws.on('message', function incoming(message) {
-  //     console.log('received: %s', message);
-  //   });
-  //
-  //   ws.send('something');
-  // });
-  //
-  //
-  // // const httpServer = http.createServer(app.callback());
-  // apolloserver.installSubscriptionHandlers(wss);
-
-  const pubsub = new PubSub();
-
-  // We are calling `listen` on the http server variable, and not on `app`.
-  // httpServer.listen(PORT, () => {
-  //   console.log(`🚀 Server ready at http://localhost:${PORT}${apolloserver.graphqlPath}`)
-  //   console.log(`🚀 Subscriptions ready at ws://localhost:${PORT}${apolloserver.subscriptionsPath}`)
-  // });
 
   async function upsertUser(userName){
     console.log("User:" + JSON.stringify(userName) );
