@@ -1,15 +1,47 @@
 const randomWords = require('../random-words/random-words');
 const randomEmoji = require('../random-emoji');
 const Database = require('../core/db.js');
+var DataLoader = require('dataloader');
+var sqlite3 = require('sqlite3');
 
 var db = new Database(process.env.DATABASE);
+
+
+var userLoader = new DataLoader(ids => {
+  var params = ids.map(id => '?' ).join();
+  var query = `SELECT * FROM users WHERE userId IN (${params})`;
+  return queryLoader.load([query, ids]).then(
+    rows => ids.map(
+      id => rows.find(row => row.userId == id) || new Error(`Row not found: ${id}`)
+    )
+  );
+});
+
+// Parallelize all queries, but do not cache.
+var queryLoader = new DataLoader(queries => new Promise(resolve => {
+  var waitingOn = queries.length;
+  var results = [];
+
+  db.parallelize(() => {
+    queries.forEach((query, index) => {
+      console.log("\n\nHitting DB for query:" + query+"\n\n");
+      db.all.apply(db, query.concat((error, result) => {
+        results[index] = error || result;
+        if (--waitingOn === 0) {
+          resolve(results);
+        }
+      }));
+    });
+  });
+}), { cache: false });
+
 
 class Users{
   async newUserId(){
 
     var newId = await randomWords();
     newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
-    newId = randomEmoji() + newId + randomEmoji() ;
+    newId = randomEmoji() + newId + randomEmoji();
     console.log("newId:" + newId);
 
     return newId;
