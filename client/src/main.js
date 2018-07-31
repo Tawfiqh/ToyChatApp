@@ -3,10 +3,7 @@ import App from './App.vue'
 import router from './router'
 import _ from 'lodash';
 import Axios from 'axios';
-import Vuex from 'vuex';
-import store from './store';
-
-Vue.use(Vuex);
+import store from './store.js';
 
 Vue.config.productionTip = process.env.NODE_ENV === 'production'
 

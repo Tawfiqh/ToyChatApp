@@ -34,6 +34,7 @@
 
 <script>
 import io from 'socket.io-client';
+import store from '../store.js';
 
 export default {
   name: 'GraphChat',
@@ -99,6 +100,9 @@ export default {
 
     var messages = this.messages; //XXYZ - might be superfluous.
     function addToRecord(data, sender, timestamp){
+
+      store.commit('addVisitor', sender);
+
       var sentBy = sender + "  : "
       messages.unshift({message:data, sender:sentBy, timestamp:new Date(timestamp)}); //Add to beginning of array.
     }
