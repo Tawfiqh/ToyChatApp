@@ -9,7 +9,8 @@ const socket = require('socket.io');
 
 const randomEmoji = require('./random-emoji')
 const serverEngine = require('./serverEngine')
-const User = require('./models/User.js');
+const Users = require('./models/Users.js');
+const Messages = require('./models/Messages.js');
 const Database = require('./db.js');
 
 var db = new Database(process.env.DATABASE);
@@ -47,7 +48,7 @@ function setupOtherEndpoints(router){
     });
 
     router.get('/new-user-id', async (ctx, next) => {
-      ctx.body = await User.newUserId();
+      ctx.body = await Users.newUserId();
     });
 
 }
@@ -68,7 +69,6 @@ function setupIoChatServer(){
       // socket.emit('newMessage', data); //Only sends to sender
   		// socket.broadcast.emit('newMessage', data); // sends to everyone apart from sender.
   	});
-
 
   })
 }
@@ -100,12 +100,6 @@ function calculateServerStatus(){
 
 
 function graphQlSetup(){
-
-  var messages = [];
-
-  var chats = [];
-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
   const schema = gql`
     type Query { # define the query
@@ -153,108 +147,28 @@ function graphQlSetup(){
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
       users: (result, {limit}) => {
-        return User.getUsers(limit);
+        return Users.getUsers(limit);
       },
       messages: (result, {limit}) => {
-
-        if (!limit){
-          console.log("NoLimit: "+limit);
-          limit = 10;
-        } else{
-          console.log("Limit: "+limit);
-        }
-
-        return new Promise( function(resolve, reject){
-
-          db.start();
-
-          results = [];
-          console.log("Limit: "+limit);
-
-          // console.log("sql:" + sql);
-          db.all(`SELECT m.timestamp, m.body,
-                  u.nickname, u.timestamp as uTimestamp, u.userId
-                  FROM 'messages' m
-                  JOIN 'users' u on u.userId = m.userId
-                  ORDER by m.timestamp DESC LIMIT $1;`,
-           [limit], (err, rows) => {
-            if (err) {
-              console.log("Failed with err:"+err);
-              resolve([]);
-            }
-
-            if(rows == undefined){
-
-              resolve(results);
-              return;
-
-            }
-
-            rows.forEach((row) => {
-              results.push({
-                body: row["body"],
-                sender: {
-                  name: row["nickname"],
-                  timestamp: row["uTimestamp"],
-                  id: row["userId"]
-                },
-                timestamp: row["timestamp"],
-              });
-
-              // console.log(row);
-
-            });
-
-            resolve(results);
-          });
-
-          // close the database connection
-          db.close();
-        });
-
+        return Messages.getMessages(limit);
       },
       newUser: async () => {
-        var name = await User.newUserId();
+        var name = await Users.newUserId();
         return {name:name};
       },
     },
     Mutation: {
       sendMessage: async (result, {message}) => {
 
-        console.log("Sender:" + JSON.stringify(message["sender"]));
-        console.log("Body:" + JSON.stringify(message["body"]));
+        var result = await Messages.sendMessage(message)
 
-        // ============================== Put user into database. ==============================
-        var insertResult = await User.upsertUser(message["sender"])
-
-        db.start()
-
-        db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $user, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
-         {
-           "$body":message["body"],
-           "$user":insertResult["id"],
-          }, (err, rows) => {
-          if (err) {
-            console.error("FAILED TO WRITE TO DB");
-            return;
-          }
-          if(rows.length == 0) return;
-
-          rows.forEach((row) => {
-            console.log(row);
-          });
-        });
-
-        // close the database connection
-        db.close();
-        var result  = {body: message["body"], sender:insertResult, timestamp: new Date()};
         io.sockets.emit('newMessage', result); //Sends to everyone
 
         return result;
 
       },
       addUser: async (result, {userName}) => {
-        var insertResult = await User.upsertUser(userName)
+        var insertResult = await Users.upsertUser(userName)
 
         return insertResult;
 
