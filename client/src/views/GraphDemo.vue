@@ -9,11 +9,15 @@
     <p class="code">{{ queryResult }} </p>
 
     <hr  />
+    <pre class="code">
+userName: {{store.state.userName}},
+uniqueVisitors: {{store.getters.uniqueVisitors}},
+longestName: {{store.getters.longestName}},
 
-    <pre>My current Name: {{store.state.userName}}</pre>
-    <pre>{{store.getters.uniqueVisitors}}</pre>
-    <pre>Longest: {{store.getters.longestName}}</pre>
-    <h5>{{store.state.visitors}}</h5>
+visitors:
+<span class="smaller-line-breaks">{{store.state.visitors}}</span>
+    </pre>
+
 
   </div>
 
@@ -78,6 +82,10 @@ export default {
 
 .emoji-button:active{
   font-size: 70px;
+}
+
+.smaller-line-breaks{
+  white-space: normal;
 }
 
 </style>

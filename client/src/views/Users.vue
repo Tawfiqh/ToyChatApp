@@ -1,9 +1,12 @@
 <template>
   <div id="chat" >
     <h1> Users! ( view only ) <a class="emoji-button hidden" v-on:click="fetchUsers();" href="javascript:">🦅</a></h1>
-    <h3>Current User: {{storedUser}}</h3>
 
-    <pre class="code">Vue-X store<br />{{storedUserList}}</pre>
+    <pre class="code">Vue-X store
+
+currentUser: '{{store.state.userName}}',
+visitors:<br />{{store.state.visitors}}
+</pre>
 
     <hr  />
 
@@ -25,14 +28,9 @@ export default {
   data: () => ({
     queryResult: "",
     query: "hi",
-    storedUser: "",
-    storedUserList: []
+    store:store
   }),
   methods:{
-    updateVueXView(){
-      this.storedUser = store.state.userName;
-      this.storedUserList = store.state.visitors;
-    },
     async fetchUsers(){
       const endpoint = `${process.env.VUE_APP_BASE_URL}${process.env.VUE_APP_GRAPH_URL}`;
 
@@ -45,8 +43,6 @@ export default {
       var newName = this._.get(data, ["data", "newUser", "name"], null);
 
       store.commit('addVisitor', newName);
-      this.updateVueXView();
-
     }
   },
   async mounted() {
@@ -62,6 +58,10 @@ export default {
   hr{
     border: 1px solid grey;
     margin: 100px 5px;
+  }
+
+  .hidden{
+    display: none;
   }
 
 </style>
