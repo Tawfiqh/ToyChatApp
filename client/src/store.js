@@ -1,13 +1,15 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import _ from 'lodash';
+import axios from 'axios';
 import createPersistedState from 'vuex-persistedstate';
 
 Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
-    visitors: []
+    visitors: [],
+    userName: null
   },
   mutations: {
     addVisitor (state, visitor){
@@ -16,8 +18,25 @@ export default new Vuex.Store({
 
       state.visitors.push(visitor);
     },
+    setUserName(state, newName){
+      state.userName = newName;
+    },
     empty (state){
       state.visitors = [];
+    }
+  },
+  actions: {
+    async setNewUserName(context){
+
+      const endpoint = `${process.env.VUE_APP_BASE_URL}${process.env.VUE_APP_GRAPH_URL}`;
+      var body = { "query": "{newUser{ name }}" };
+      const { data } = await axios.post( endpoint, body );
+
+      // this.query = JSON.stringify(body,null,2);
+      // this.queryResult = JSON.stringify(data,null,2);
+      var newName = _.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
+
+      context.commit('setUserName', newName);
     }
   },
   getters :{

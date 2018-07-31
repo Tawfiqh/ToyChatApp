@@ -2,9 +2,9 @@
   <div id="chat" >
     <h1> GraphQuery! </h1>
     <h3>{{storeVal}}</h3>
-    <pre>{{storeVal1}}</pre>
-    <pre>{{storeVal2}}</pre>
-    <pre>{{storeVal3}}</pre>
+    <pre>My current Name: {{myName}}</pre>
+    <pre>{{uniqueVisitors}}</pre>
+    <pre>Longest: {{longestName}}</pre>
     <a class="emoji-button" v-on:click="requestNew();" href="javascript:">🦅</a><a class="emoji-button" v-on:click="emptyVueX();" href="javascript:">🚮</a>
 
     <h3 class="code"> {{ query }} </h3>
@@ -26,19 +26,22 @@ export default {
     queryResult: "",
     query: "hi",
     storeVal: 0,
-    storeVal1: 0,
-    storeVal2: 0,
-    storeVal3: 0,
+    lastVisitor: 0,
+    myName: 0,
+    uniqueVisitors: 0,
+    longestName: 0,
   }),
   methods:{
     updateVueXView(){
       this.storeVal = store.state.visitors;
-      this.storeVal1 = store.getters.lastVisitor;
-      this.storeVal2 = store.getters.uniqueVisitors;
-      this.storeVal3 = store.getters.longestName;
+      this.lastVisitor = store.getters.lastVisitor;
+      this.uniqueVisitors = store.getters.uniqueVisitors;
+      this.longestName = store.getters.longestName;
+      this.myName = store.state.userName;
     },
     async requestNew(){
-      const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
+
+      const endpoint = `${process.env.VUE_APP_BASE_URL}${process.env.VUE_APP_GRAPH_URL}`;
       console.log("endpoint:"+endpoint);
       var body = { "query": "{newUser {name}}" };
       const { data } = await this.axios.post( endpoint, body );
@@ -47,9 +50,11 @@ export default {
       this.queryResult = JSON.stringify(data,null,2);
 
       var newName = this._.get(data, ["data", "newUser", "name"], null);
-      store.commit('addVisitor', newName);
-      this.updateVueXView();
 
+      // store.commit('setNewUserName');
+      store.commit('addVisitor', newName);
+
+      this.updateVueXView();
 
     },
     emptyVueX(){
@@ -58,7 +63,7 @@ export default {
     }
   },
   async mounted() {
-    // this.requestNew();
+    this.requestNew();
     this.updateVueXView();
   },
   beforeDestroy() {

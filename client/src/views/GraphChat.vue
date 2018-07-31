@@ -6,7 +6,7 @@
 
       <div class = "col-1">
 
-        <h3>Your ID is: {{ myId }}</h3>
+        <h3><a class="emoji-button" v-on:click="newId();" href="javascript:">👉</a>Your ID is: {{ myId }}</h3>
 
         <input type="text" v-on:keyup.enter="submitForm();" v-model="message" placeholder="Type message">
         <a class="toggle-bar" v-on:click="submitForm();" href="#">🛫</a>
@@ -50,7 +50,7 @@ export default {
     async submitForm(){
       // console.log("Submitting with:" + this.message);
 
-      const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
+      const endpoint = `${process.env.VUE_APP_BASE_URL}${process.env.VUE_APP_GRAPH_URL}`;
       var body = {
         "query": "mutation queryTest( $body: String, $sender: String ){ sendMessage(message:{body: $body, sender: $sender}){ body timestamp sender{ name id timestamp } } }",
         "variables": { "body": this.message, "sender": this.myId}
@@ -63,22 +63,31 @@ export default {
 
       this.message = "";
     },
-    async getNewId(){
-      // return "⛱ folk_theater🇲🇦 "
+    async newId(){
 
-      const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
-      var body = { "query": "{newUser{ name }}" };
-      const { data } = await this.axios.post( endpoint, body );
+      await store.dispatch('setNewUserName');
 
-      // this.query = JSON.stringify(body,null,2);
-      // this.queryResult = JSON.stringify(data,null,2);
+      this.myId = store.state.userName;
 
-      return this._.get(data, "data.newUser.name", "⛱ folk_theater🇲🇦" );
+      console.log("Updated to:"+this.myId);
+
+      return store.state.userName
+
+    },
+    async getId(){
+
+      if(store.state.userName == null){
+
+        await store.commit('setNewUserName');
+
+      }
+
+      return store.state.userName
 
     },
     async getRecentMessages(){
 
-      const endpoint = `${process.env.VUE_APP_BASE_URL}graphql`;
+      const endpoint = `${process.env.VUE_APP_BASE_URL}${process.env.VUE_APP_GRAPH_URL}`;
       var body = {
         "query": "query queryTest( $limit : Int ){ messages(limit: $limit){ body, sender{ name }, timestamp } }",
         "variables":{"limit": 10}
@@ -93,7 +102,7 @@ export default {
   },
   beforeMount() {
 
-    this.getNewId().then((res)=>{
+    this.getId().then((res)=>{
      this.myId = res;
     });
 

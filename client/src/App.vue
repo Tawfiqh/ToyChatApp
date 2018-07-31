@@ -4,7 +4,8 @@
       <router-link to="/">👇</router-link> |
       <router-link to="/chat">chat</router-link> |
       <router-link to="/graph-demo">Gql</router-link> |
-      <router-link to="/graph-chat"> 📊 💬 </router-link>
+      <router-link to="/graph-chat"> 📊 💬 </router-link>|
+      <router-link to="/users"> 👥 👀</router-link>
     </div>
     <router-view/>
   </div>
