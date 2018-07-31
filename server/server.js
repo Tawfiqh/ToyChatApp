@@ -3,15 +3,14 @@ const { ApolloServer, gql } = require('apollo-server-koa');
 
 const _ = require('lodash');
 
-
 const socket = require('socket.io');
 const sqlite3 = require('sqlite3');
 
 const randomEmoji = require('./random-emoji')
-const randomWords = require('./random-words/random-words')
 
 const serverEngine = require('./serverEngine')
 
+const User = require('./models/User.js');
 
 var db = null;
 
@@ -25,8 +24,6 @@ setupDb();
 var port = 4000;
 
 graphQlSetup();
-
-
 
 var {server, router} = serverEngine.setup(port);
 
@@ -58,7 +55,7 @@ function setupOtherEndpoints(router){
     });
 
     router.get('/new-user-id', async (ctx, next) => {
-      ctx.body = await formatNewUserId();
+      ctx.body = await User.newUserId();
     });
 
 }
@@ -84,15 +81,6 @@ function setupIoChatServer(){
   })
 }
 
-async function formatNewUserId(){
-  var newId = await randomWords();
-  newId = newId.replace(/[\s-]/g, "_"); // Replace white spaces and dahes with underscore.
-  newId = randomEmoji() + newId + randomEmoji() ;
-  console.log("newId:" + newId);
-
-  return newId;
-
-}
 
 
 function calculateServerStatus(){
@@ -120,19 +108,6 @@ function calculateServerStatus(){
 
 
 function graphQlSetup(){
-
-  class User {
-    constructor(name,age) {
-      this.name = name
-      this.age = age
-    }
-  }
-
-  var users = [
-    new User("Tim", 34),
-    new User("Terrence", 31),
-    new User("Alan", 23),
-  ];
 
   var messages = [];
 
@@ -318,8 +293,8 @@ function graphQlSetup(){
 
       },
       newUser: async () => {
-        var name = await formatNewUserId();
-        return new User(name, 99);
+        var name = await User.newUserId();
+        return {name:name};
       },
     },
     Mutation: {
