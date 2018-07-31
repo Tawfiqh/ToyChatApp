@@ -1,25 +1,18 @@
+require('dotenv').load();
+
 const { ApolloServer, gql } = require('apollo-server-koa');
 
 
 const _ = require('lodash');
 
 const socket = require('socket.io');
-const sqlite3 = require('sqlite3');
 
 const randomEmoji = require('./random-emoji')
-
 const serverEngine = require('./serverEngine')
-
 const User = require('./models/User.js');
+const Database = require('./db.js');
 
-var db = null;
-
-function db_start(){
-  db = new sqlite3.Database('chatDatabase.sqlite3');
-};
-
-setupDb();
-
+var db = new Database(process.env.DATABASE);
 
 var port = 4000;
 
@@ -33,7 +26,6 @@ setupOtherEndpoints(router);
 const io = new socket(server)
 
 setupIoChatServer();
-
 
 
 
@@ -120,7 +112,6 @@ function graphQlSetup(){
       hello: String # define the fields
       byeBye: String
       users: [User]
-      getUsersAboveAge(age: Int!): [User]
       messages(limit: Int): [Message]
       newUser: User
     }
@@ -152,7 +143,6 @@ function graphQlSetup(){
       id: Int
       messages: [Message]
     }
-
   `;
 
 
@@ -163,76 +153,7 @@ function graphQlSetup(){
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
       users: (result, {limit}) => {
-
-        if (!limit){
-          console.log("NoLimit: "+limit);
-          limit = 100;
-        } else{
-          console.log("Limit: "+limit);
-        }
-
-        return new Promise( function(resolve, reject){
-
-          db_start();
-
-          var results = [];
-
-          var hashResults = {};
-
-
-          db.all(`SELECT u.userId, nickname, u.timestamp, m.timestamp as mTimestamp, body
-                  FROM 'users' u
-                  JOIN 'messages' m on m.userId = u.userId
-                  ORDER by u.timestamp DESC
-                  LIMIT $1 `,
-          [limit],
-          (err, rows) => {
-
-            if (err) {
-              console.log("naaaah");
-              reject(err);
-            }
-
-            if(rows != undefined){
-
-              rows.forEach((row) => {
-
-                if(!hashResults[row["userId"]]){
-                  hashResults[row["userId"]] = {
-                    name: row["nickname"],
-                    id: row["userId"],
-                    timestamp: row["timestamp"],
-                    messages: []
-                  }
-                }
-
-                hashResults[row["userId"]]["messages"].push({
-                  timestamp: row["mTimestamp"],
-                  body: row["body"],
-                  sender: hashResults[row["userId"]]
-                });
-
-              });
-
-              Object.keys(hashResults).forEach((userId)=>{
-
-                results.push(hashResults[userId]);
-
-              });
-            }
-
-            resolve(results);
-          });
-
-          // close the database connection
-          db.close();
-        });
-
-      },
-      getUsersAboveAge: (result, {age}) => {
-        console.log("Age: "+ age);
-
-        return users.filter(a => a.age > age)
+        return User.getUsers(limit);
       },
       messages: (result, {limit}) => {
 
@@ -245,7 +166,7 @@ function graphQlSetup(){
 
         return new Promise( function(resolve, reject){
 
-          db_start();
+          db.start();
 
           results = [];
           console.log("Limit: "+limit);
@@ -304,9 +225,9 @@ function graphQlSetup(){
         console.log("Body:" + JSON.stringify(message["body"]));
 
         // ============================== Put user into database. ==============================
-        var insertResult = await upsertUser(message["sender"])
+        var insertResult = await User.upsertUser(message["sender"])
 
-        db_start()
+        db.start()
 
         db.all(`INSERT INTO messages(body, userId,timestamp) VALUES ($body, $user, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
          {
@@ -333,7 +254,7 @@ function graphQlSetup(){
 
       },
       addUser: async (result, {userName}) => {
-        var insertResult = await upsertUser(userName)
+        var insertResult = await User.upsertUser(userName)
 
         return insertResult;
 
@@ -347,103 +268,10 @@ function graphQlSetup(){
      resolvers,
      formatError: (err) => { console.log(err); return err },
      context: ({ ctx }) => ctx,
-     // subscriptions: {
-     //  path:"/wsGraph",
-     // },
    }
   );
 
   serverEngine.setupApolloOnPath(apolloserver, '/graphql');
 
 
-  async function upsertUser(userName){
-    console.log("User:" + JSON.stringify(userName) );
-
-
-    db_start()
-
-    var selectFromDb = new Promise( function(resolve, reject){
-
-      db.all(`select userId, nickname ,timestamp from users where nickname = $nickname LIMIT 1`,
-       {
-         "$nickname":userName
-        }, (err, rows) => {
-        if (err) {
-          console.error("FAILED TO WRITE TO DB");
-          return;
-        }
-
-        if(rows.length == 0){
-          resolve(null);
-          return;
-        }
-
-        resolve(rows[0]);
-        return;
-
-      });
-
-      // close the database connection
-      db.close();
-
-    });
-
-    var selectResult = await selectFromDb;
-
-    if (selectResult != null){
-
-      return { name:selectResult["nickname"], timestamp: selectResult["timestamp"], id: selectResult["userId"]};
-
-    }
-
-
-    // ============================== Put user into database. ==============================
-    db_start()
-
-    var insertResult = new Promise( function(resolve, reject){
-      db.run(`INSERT INTO users( nickname ,timestamp) VALUES ($nickname, strftime('%Y-%m-%d %H:%M:%S:%f','now') )`,
-       {
-         "$nickname":userName
-       }, function(err){
-        if (err) {
-          console.error("FAILED TO WRITE TO DB");
-          resolve(null);
-          return;
-        }
-        resolve(this.lastID);
-
-
-      });
-    });
-
-    // close the database connection
-    db.close();
-
-
-    var insertId = await insertResult;
-
-    if (insertId == null){
-      return { };
-    }
-
-    return { name:userName, timestamp: new Date(), id: insertId};
-
-
-  }
-
-
 };
-
-
-function setupDb(){
-  db_start();
-
-  db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS messages (body TEXT, userId INTEGER, timestamp TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS users (userId INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT, timestamp TEXT)");
-    // db.run("CREATE TABLE IF NOT EXISTS chats (userId TEXT, sender Int, timestamp DATETIME(6))");
-  });
-
-  db.close();
-
-}
