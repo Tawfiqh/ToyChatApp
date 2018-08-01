@@ -64,8 +64,8 @@ function graphServer({ io }){
      resolvers,
      formatError: (err) => { console.log(err); return err },
      context: {
-       Messages: new Messages(),
-       Users: new Users()
+       Messages: new Messages({}),
+       Users: new Users({})
      },
    }
   );

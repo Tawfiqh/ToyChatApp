@@ -1,9 +1,15 @@
 const Database = require('../core/db.js');
-const Users = require('./Users.js');
+// const UsersImport = require('./Users.js');
 
 var db = new Database(process.env.DATABASE);
 
 class Messages{
+
+  // constructor({Users}){
+  //
+  //   this.Users = (Users == undefined) ? Users : UsersImport;
+  //
+  // }
 
   getMessages(limit){
 

@@ -47,6 +47,10 @@ class DbObject {
     this.db.run(query, variables, callback);
   }
 
+  parallelize(...args){
+    this.db.parallelize(...args);
+  }
+
 
 };
 

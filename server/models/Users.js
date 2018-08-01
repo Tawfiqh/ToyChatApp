@@ -11,20 +11,12 @@ var db = new Database(process.env.DATABASE);
 class Users{
 
   constructor(){
-    this.userLoader = new DataLoader(ids => {
-      var params = ids.map(id => '?' ).join();
-      var query = `SELECT * FROM users WHERE userId IN (${params})`;
-      return queryLoader.load([query, ids]).then(
-        rows => ids.map(
-          id => rows.find(row => row.userId == id) || new Error(`Row not found: ${id}`)
-        )
-      );
-    });
 
     // Parallelize all queries, but do not cache.
     this.queryLoader = new DataLoader(queries => new Promise(resolve => {
       var waitingOn = queries.length;
       var results = [];
+      db.start();
 
       db.parallelize(() => {
         queries.forEach((query, index) => {
@@ -38,6 +30,17 @@ class Users{
         });
       });
     }), { cache: false });
+
+
+    this.userLoader = new DataLoader(ids => {
+      var params = ids.map(id => '?' ).join();
+      var query = `SELECT * FROM users WHERE userId IN (${params})`;
+      return this.queryLoader.load([query, ids]).then(
+        rows => ids.map(
+          id => rows.find(row => row.userId == id) || new Error(`Row not found: ${id}`)
+        )
+      );
+    });
 
 
   }
