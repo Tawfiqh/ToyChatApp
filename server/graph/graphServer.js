@@ -48,7 +48,7 @@ function graphServer({ io }){
     },
     User: {
       messages: async (result, _, {Messages}) => {
-        return await Messages.getMessagesWithUserId(result.id);
+        return await Messages.getMessages(result.id);
       }
     },
     Message:{
@@ -63,10 +63,10 @@ function graphServer({ io }){
      typeDefs: schema,
      resolvers,
      formatError: (err) => { console.log(err); return err },
-     context: () => ({
-       Messages: new Messages({}),
-       Users: new Users({})
-     }),
+     context: {
+       Messages: new Messages(),
+       Users: new Users()
+     },
    }
   );
 
