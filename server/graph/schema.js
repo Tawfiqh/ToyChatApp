@@ -6,6 +6,7 @@ const schema = gql`
       hello: String # define the fields
       byeBye: String
       users: [User]
+      userWithId(id: Int!): User
       messages(limit: Int): [Message]
       newUser: User
     }

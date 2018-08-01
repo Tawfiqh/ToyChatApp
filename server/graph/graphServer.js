@@ -15,6 +15,9 @@ function graphServer({ io }){
     Query:{
       hello: ()  => "World",
       byeBye: ()  => "👋 ",
+      userWithId: (result, {id}, {Users}) => {
+        return Users.getUserWithId(id);
+      },
       users: (result, {limit}, {Users}) => {
         return Users.getUsers(limit);
       },
@@ -27,21 +30,31 @@ function graphServer({ io }){
       },
     },
     Mutation: {
-      sendMessage: async (result, {message}) => {
+      sendMessage: async (result, {message}, {Messages, Users}) => {
 
-        var result = await Messages.sendMessage(message)
+        var result = await Messages.sendMessage(message, {Users})
 
         io.sockets.emit('newMessage', result); //Sends to everyone
 
         return result;
 
       },
-      addUser: async (result, {userName}) => {
-        var insertResult = await Users.upsertUser(userName)
+      addUser: async (result, {userName}, {Users}) => {
 
+        var insertResult = await Users.upsertUser(userName)
         return insertResult;
 
       },
+    },
+    User: {
+      messages: async (result, _, {Messages}) => {
+        return await Messages.getMessages(result.id);
+      }
+    },
+    Message:{
+      sender: async (result, _, {Users}) => {
+        return await Users.getUserWithId(result.sender.id);
+      }
     }
   };
 

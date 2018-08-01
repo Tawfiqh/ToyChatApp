@@ -8,23 +8,16 @@ class Messages{
   getMessages(limit){
 
     if (!limit){
-      console.log("NoLimit: "+limit);
       limit = 10;
-    } else{
-      console.log("Limit: "+limit);
     }
-
     return new Promise( function(resolve, reject){
 
       db.start();
 
       var results = [];
-      console.log("Limit: "+limit);
 
-      db.all(`SELECT m.timestamp, m.body,
-              u.nickname, u.timestamp as uTimestamp, u.userId
+      db.all(`SELECT m.timestamp, m.body, m.userId
               FROM 'messages' m
-              JOIN 'users' u on u.userId = m.userId
               ORDER by m.timestamp DESC LIMIT $1;`,
        [limit], (err, rows) => {
         if (err) {
@@ -43,8 +36,6 @@ class Messages{
           results.push({
             body: row["body"],
             sender: {
-              name: row["nickname"],
-              timestamp: row["uTimestamp"],
               id: row["userId"]
             },
             timestamp: row["timestamp"],
@@ -62,7 +53,51 @@ class Messages{
     });
   }
 
-  async sendMessage(message){
+  getMessagesWithUserId(userId){
+
+    return new Promise( function(resolve, reject){
+
+      db.start();
+
+      var results = [];
+
+      db.all(`SELECT m.timestamp, m.body, m.userId
+              FROM 'messages' m
+              where userId = ?
+              ORDER by m.timestamp DESC;`,
+       [userId], (err, rows) => {
+        if (err) {
+          console.log("Failed with err:"+err);
+          resolve([]);
+        }
+
+        if(rows == undefined){
+
+          resolve(results);
+          return;
+
+        }
+
+        rows.forEach((row) => {
+          results.push({
+            body: row["body"],
+            sender: {
+              id: row["userId"]
+            },
+            timestamp: row["timestamp"],
+          });
+
+        });
+
+        resolve(results);
+      });
+
+      // close the database connection
+      db.close();
+    });
+  }
+
+  async sendMessage(message, {Users}){
 
     console.log("Sender:" + JSON.stringify(message["sender"]));
     console.log("Body:" + JSON.stringify(message["body"]));

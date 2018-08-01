@@ -125,10 +125,7 @@ class Users{
   getUsers(limit){
 
     if (!limit){
-      console.log("NoLimit: "+limit);
       limit = 100;
-    } else{
-      console.log("Limit: "+limit);
     }
 
     return new Promise( function(resolve, reject){
@@ -182,6 +179,53 @@ class Users{
         }
 
         resolve(results);
+      });
+
+      // close the database connection
+      db.close();
+    });
+
+  };
+
+  getUserWithId(userId){
+
+    if (!userId == null || userId == undefined){
+      return null; //new Promise(function(resolve, reject){resolve(null)});;
+    }
+
+    return new Promise(function(resolve, reject){
+
+      db.start();
+
+      db.all(`SELECT u.userId, nickname, u.timestamp
+              FROM 'users' u
+              where userId = ?
+              LIMIT 1`,
+      [userId],
+      (err, rows) => {
+
+        if (err) {
+          console.log("Error reading from DB");
+          reject(err);
+        }
+        var result = null;
+
+        if(rows != undefined){
+
+          rows.forEach((row) => {
+
+            result = {
+              id: row["userId"],
+              name: row["nickname"],
+              timestamp: row["timestamp"],
+              messages: []
+            }
+
+          });
+        }
+
+        resolve(result);
+
       });
 
       // close the database connection

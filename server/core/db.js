@@ -28,20 +28,22 @@ class DbObject {
     if (!this.dbAddress){
       throw Error("No database address set");
     }
-    console.log("Opening connecting to db: "+this.dbAddress);
+    // console.log(">>>>>>>Opening connecting to db: "+this.dbAddress);
     this.db = new sqlite3.Database(this.dbAddress);
   }
 
   close(){
-    console.log("Closing connecting to db: "+this.dbAddress);
+    // console.log(">>>>>>>Closing connecting to db: "+this.dbAddress);
     this.db.close();
   }
 
   all(query, variables, callback){
+    console.log("+querying:" + query.replace("\n", " ").substring(0,103));
     this.db.all(query, variables, callback);
   }
 
   run(query, variables, callback){
+    console.log("+querying:" + query.replace("\n", " ").replace("  "," ").substring(0,103));
     this.db.run(query, variables, callback);
   }
 
