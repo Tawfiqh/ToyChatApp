@@ -15,7 +15,6 @@ class Messages{
 
       db.parallelize(() => {
         queries.forEach((query, index) => {
-          console.log("+quryLoad:" + query);
           db.all.apply(db, query.concat((error, result) => {
             results[index] = error || result;
             if (--waitingOn === 0) {
@@ -31,9 +30,19 @@ class Messages{
       var params = ids.map(id => '?' ).join();
       var query = `SELECT * FROM messages WHERE userId IN (${params})`;
       return this.queryLoader.load([query, ids]).then(
-        rows => ids.map(
-          id => rows.find(row => row.userId == id) || new Error(`Row not found: ${id}`)
-        )
+        rows => {
+            return ids.map(id => {
+              return rows.filter(row => row.userId == id).map(row => ({
+                body: row["body"],
+                sender: {
+                  id: row["userId"]
+                },
+                timestamp: row["timestamp"],
+              })
+              ) || new Error(`Row not found: ${id}`)
+            });
+
+        }
       );
     });
 
@@ -101,46 +110,16 @@ class Messages{
 
   getMessagesWithUserId(userId){
 
-    return new Promise( function(resolve, reject){
-
-      db.start();
-
-      var results = [];
-
-      db.all(`SELECT m.timestamp, m.body, m.userId
-              FROM 'messages' m
-              where userId = ?
-              ORDER by m.timestamp DESC;`,
-       [userId], (err, rows) => {
-        if (err) {
-          console.log("Failed with err:"+err);
-          resolve([]);
-        }
-
-        if(rows == undefined){
-
-          resolve(results);
-          return;
-
-        }
-
-        rows.forEach((row) => {
-          results.push({
-            body: row["body"],
-            sender: {
-              id: row["userId"]
-            },
-            timestamp: row["timestamp"],
-          });
-
-        });
-
-        resolve(results);
-      });
-
-      // close the database connection
-      db.close();
-    });
+    return this.messageLoader.load(userId);
+    // .then(rows => {
+    //   var results = []
+    //   console.log("rows:"+JSON.stringify(rows));
+    //   rows.forEach((row) => {
+    //     results.push(row);
+    //   });
+    //
+    //   return results;
+    // });
   }
 
   async sendMessage(message, {Users}){
