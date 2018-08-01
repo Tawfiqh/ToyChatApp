@@ -7,36 +7,41 @@ var sqlite3 = require('sqlite3');
 var db = new Database(process.env.DATABASE);
 
 
-var userLoader = new DataLoader(ids => {
-  var params = ids.map(id => '?' ).join();
-  var query = `SELECT * FROM users WHERE userId IN (${params})`;
-  return queryLoader.load([query, ids]).then(
-    rows => ids.map(
-      id => rows.find(row => row.userId == id) || new Error(`Row not found: ${id}`)
-    )
-  );
-});
-
-// Parallelize all queries, but do not cache.
-var queryLoader = new DataLoader(queries => new Promise(resolve => {
-  var waitingOn = queries.length;
-  var results = [];
-
-  db.parallelize(() => {
-    queries.forEach((query, index) => {
-      console.log("\n\nHitting DB for query:" + query+"\n\n");
-      db.all.apply(db, query.concat((error, result) => {
-        results[index] = error || result;
-        if (--waitingOn === 0) {
-          resolve(results);
-        }
-      }));
-    });
-  });
-}), { cache: false });
-
 
 class Users{
+
+  constructor(){
+    this.userLoader = new DataLoader(ids => {
+      var params = ids.map(id => '?' ).join();
+      var query = `SELECT * FROM users WHERE userId IN (${params})`;
+      return queryLoader.load([query, ids]).then(
+        rows => ids.map(
+          id => rows.find(row => row.userId == id) || new Error(`Row not found: ${id}`)
+        )
+      );
+    });
+
+    // Parallelize all queries, but do not cache.
+    this.queryLoader = new DataLoader(queries => new Promise(resolve => {
+      var waitingOn = queries.length;
+      var results = [];
+
+      db.parallelize(() => {
+        queries.forEach((query, index) => {
+          console.log("\n\nHitting DB for query:" + query+"\n\n");
+          db.all.apply(db, query.concat((error, result) => {
+            results[index] = error || result;
+            if (--waitingOn === 0) {
+              resolve(results);
+            }
+          }));
+        });
+      });
+    }), { cache: false });
+
+
+  }
+
   async newUserId(){
 
     var newId = await randomWords();
@@ -53,7 +58,7 @@ class Users{
 
 
     db.start()
-
+    var userLoader = this.userLoader;
     var selectFromDb = new Promise( function(resolve, reject){
 
       db.all(`select userId, nickname ,timestamp from users where nickname = $nickname LIMIT 1`,
@@ -69,7 +74,7 @@ class Users{
           resolve(null);
           return;
         }
-
+        userLoader.prime(rows[0].userId, rows[0]);
         resolve(rows[0]);
         return;
 
@@ -127,6 +132,7 @@ class Users{
     if (!limit){
       limit = 100;
     }
+    var userLoader = this.userLoader;
 
     return new Promise( function(resolve, reject){
 
@@ -137,9 +143,8 @@ class Users{
       var hashResults = {};
 
 
-      db.all(`SELECT u.userId, nickname, u.timestamp, m.timestamp as mTimestamp, body
+      db.all(`SELECT u.userId, nickname, u.timestamp
               FROM 'users' u
-              JOIN 'messages' m on m.userId = u.userId
               ORDER by u.timestamp DESC
               LIMIT $1 `,
       [limit],
@@ -153,29 +158,20 @@ class Users{
         if(rows != undefined){
 
           rows.forEach((row) => {
+            userLoader.prime(rows[0].userId, rows[0]);
 
-            if(!hashResults[row["userId"]]){
-              hashResults[row["userId"]] = {
+            results.push(
+              {
                 name: row["nickname"],
                 id: row["userId"],
                 timestamp: row["timestamp"],
                 messages: []
               }
-            }
+            );
 
-            hashResults[row["userId"]]["messages"].push({
-              timestamp: row["mTimestamp"],
-              body: row["body"],
-              sender: hashResults[row["userId"]]
-            });
 
           });
 
-          Object.keys(hashResults).forEach((userId)=>{
-
-            results.push(hashResults[userId]);
-
-          });
         }
 
         resolve(results);
@@ -193,44 +189,17 @@ class Users{
       return null; //new Promise(function(resolve, reject){resolve(null)});;
     }
 
-    return new Promise(function(resolve, reject){
+    return this.userLoader.load(userId).then(row => {
+        var result = {
+          id: row["userId"],
+          name: row["nickname"],
+          timestamp: row["timestamp"],
+          messages: []
+        };
 
-      db.start();
-
-      db.all(`SELECT u.userId, nickname, u.timestamp
-              FROM 'users' u
-              where userId = ?
-              LIMIT 1`,
-      [userId],
-      (err, rows) => {
-
-        if (err) {
-          console.log("Error reading from DB");
-          reject(err);
-        }
-        var result = null;
-
-        if(rows != undefined){
-
-          rows.forEach((row) => {
-
-            result = {
-              id: row["userId"],
-              name: row["nickname"],
-              timestamp: row["timestamp"],
-              messages: []
-            }
-
-          });
-        }
-
-        resolve(result);
+        return result;
 
       });
-
-      // close the database connection
-      db.close();
-    });
 
   };
 

@@ -48,7 +48,7 @@ function graphServer({ io }){
     },
     User: {
       messages: async (result, _, {Messages}) => {
-        return await Messages.getMessages(result.id);
+        return await Messages.getMessagesWithUserId(result.id);
       }
     },
     Message:{

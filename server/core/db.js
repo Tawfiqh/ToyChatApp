@@ -38,12 +38,12 @@ class DbObject {
   }
 
   all(query, variables, callback){
-    console.log("+querying:" + query.replace("\n", " ").substring(0,103));
+    console.log("+querying:" + query.replace(/\n/g, " ").replace(/  /g," ").substring(0,103));
     this.db.all(query, variables, callback);
   }
 
   run(query, variables, callback){
-    console.log("+querying:" + query.replace("\n", " ").replace("  "," ").substring(0,103));
+    console.log("+querying:" + query.replace(/\n/g, " ").replace(/  /g," ").substring(0,103));
     this.db.run(query, variables, callback);
   }
 
