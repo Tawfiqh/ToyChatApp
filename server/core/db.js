@@ -38,13 +38,17 @@ class DbObject {
   }
 
   all(query, variables, callback){
-    console.log("+querying:" + query.replace(/\n/g, " ").replace(/  /g," ").substring(0,103));
+    this.log(query, variables);
     this.db.all(query, variables, callback);
   }
 
   run(query, variables, callback){
-    console.log("+querying:" + query.replace(/\n/g, " ").replace(/  /g," ").substring(0,103));
+    this.log(query, variables);
     this.db.run(query, variables, callback);
+  }
+
+  log(query, variables){
+    console.log("+db-query :" + query.replace(/\n/g, " ").replace(/  /g," ").substring(0,103) +"," +variables);
   }
 
   parallelize(...args){

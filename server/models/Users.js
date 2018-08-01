@@ -2,7 +2,6 @@ const randomWords = require('../random-words/random-words');
 const randomEmoji = require('../random-emoji');
 const Database = require('../core/db.js');
 var DataLoader = require('dataloader');
-var sqlite3 = require('sqlite3');
 
 var db = new Database(process.env.DATABASE);
 
@@ -20,7 +19,6 @@ class Users{
 
       db.parallelize(() => {
         queries.forEach((query, index) => {
-          console.log("\n\nHitting DB for query:" + query+"\n\n");
           db.all.apply(db, query.concat((error, result) => {
             results[index] = error || result;
             if (--waitingOn === 0) {

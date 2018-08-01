@@ -1,21 +1,51 @@
 const Database = require('../core/db.js');
-// const UsersImport = require('./Users.js');
+var DataLoader = require('dataloader');
 
 var db = new Database(process.env.DATABASE);
 
 class Messages{
 
-  // constructor({Users}){
-  //
-  //   this.Users = (Users == undefined) ? Users : UsersImport;
-  //
-  // }
+  constructor(){
+
+    // Parallelize all queries, but do not cache.
+    this.queryLoader = new DataLoader(queries => new Promise(resolve => {
+      var waitingOn = queries.length;
+      var results = [];
+      db.start();
+
+      db.parallelize(() => {
+        queries.forEach((query, index) => {
+          console.log("+quryLoad:" + query);
+          db.all.apply(db, query.concat((error, result) => {
+            results[index] = error || result;
+            if (--waitingOn === 0) {
+              resolve(results);
+            }
+          }));
+        });
+      });
+    }), { cache: false });
+
+
+    this.messageLoader = new DataLoader(ids => {
+      var params = ids.map(id => '?' ).join();
+      var query = `SELECT * FROM messages WHERE userId IN (${params})`;
+      return this.queryLoader.load([query, ids]).then(
+        rows => ids.map(
+          id => rows.find(row => row.userId == id) || new Error(`Row not found: ${id}`)
+        )
+      );
+    });
+
+
+  }
 
   getMessages(limit){
 
     if (!limit){
       limit = 10;
     }
+    var messageLoader = this.messageLoader;
     return new Promise( function(resolve, reject){
 
       db.start();
@@ -38,17 +68,27 @@ class Messages{
 
         }
 
+        var saveMessages =  {};
+
         rows.forEach((row) => {
-          results.push({
+
+          var userMessage = {
             body: row["body"],
             sender: {
               id: row["userId"]
             },
             timestamp: row["timestamp"],
-          });
+          };
 
-          // console.log(row);
+          results.push(userMessage);
+          if(saveMessages[row["userId"]] == undefined){
+            saveMessages[row["userId"]] = []
+          }
+          saveMessages[row["userId"]].push(userMessage);
+        });
 
+        Object.keys(saveMessages).forEach((userId)=>{
+          messageLoader.prime(userId, saveMessages[userId] )
         });
 
         resolve(results);

@@ -63,10 +63,10 @@ function graphServer({ io }){
      typeDefs: schema,
      resolvers,
      formatError: (err) => { console.log(err); return err },
-     context: {
+     context: () => ({
        Messages: new Messages({}),
        Users: new Users({})
-     },
+     }),
    }
   );
 
